@@ -1,5 +1,4 @@
 #pragma once
-#include <string>
 #include <cstring>
 #include <ctime>
 #include "datatype.h"
@@ -89,3 +88,36 @@ typedef struct st_NoteData
 
 } STNOTEDATA;
 #pragma pack(pop)
+
+
+typedef struct st_FileHeaderBase
+{
+    INT64 m_s64FileStoreLimit;
+    INT64 m_s64FileStoreCount;
+    INT64 m_s64HeaderSize;
+    INT64 m_s64SingleSTSize;
+    st_FileHeaderBase(INT64 s64HeaderSize, INT64 s64SingleSTSize)
+        : m_s64HeaderSize(s64HeaderSize)
+        , m_s64SingleSTSize(s64SingleSTSize)
+        , m_s64FileStoreLimit(0)
+        , m_s64FileStoreCount(0)
+    {
+    }
+
+    INT64 GetStoreLimit() const
+    {
+        return m_s64FileStoreLimit;
+    }
+    INT64 GetStoreCount() const
+    {
+        return m_s64FileStoreCount;
+    }
+    INT64 GetHeaderSize() const
+    {
+        return m_s64HeaderSize;
+    }
+    INT64 GetSingleSTSize() const
+    {
+        return m_s64SingleSTSize;
+    }
+}FILE_HEADER_BASE;

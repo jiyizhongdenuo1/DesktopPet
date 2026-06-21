@@ -1,11 +1,5 @@
 cmake_minimum_required(VERSION 3.28.3)
 project(DesktopPet VERSION 1.0.0 LANGUAGES CXX)
-#自定义资源目录的前缀
-#if(POLICY QTP0001)
-#    cmake_policy(SET QTP0001 NEW)
-#endif()
-
-# 项目配置
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -26,7 +20,14 @@ find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2 Qml)
 #if(POLICY QTP0001)
     qt_policy(SET QTP0001 NEW)
 #endif()
-
+add_library(GlobalQtConfig INTERFACE)
+target_link_libraries(GlobalQtConfig  INTERFACE
+        Qt6::Core
+        Qt6::Quick
+        Qt6::QuickControls2
+        Qt6::Qml
+)
+link_libraries(GlobalQtConfig)
 set (CMAKE_AUTOMOC ON)
 set (CMAKE_AUTORCC ON)
 set (CMAKE_AUTOUIC ON)
@@ -34,11 +35,11 @@ set (CMAKE_AUTOUIC ON)
 # 子目录
 add_subdirectory(Services)
 add_subdirectory(Widgets)
-
+add_subdirectory(Bootstrapper)
 # 主可执行文件
 qt_add_executable(DesktopPet
         main.cpp
-#        ${PROJECT_WIDGETS}
+        #        ${PROJECT_WIDGETS}
 )
 
 # 设置可执行文件属性
@@ -49,14 +50,8 @@ set_target_properties(DesktopPet PROPERTIES
 )
 
 # 链接库
-target_link_libraries(DesktopPet PRIVATE 
-    Qt6::Core 
-    Qt6::Quick
-    Qt6::QuickControls2
-    Qt6::Qml
-
-    BaseServices
-    WidgetServices
+target_link_libraries(DesktopPet PRIVATE
+    Bootstrapper
     content
     Widgets
 )
@@ -74,6 +69,8 @@ install(TARGETS DesktopPet
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
 )
+
+install (FILES config/* DESTINATION ./config/)
 
 # 添加清理目标
 add_custom_target(clean-all

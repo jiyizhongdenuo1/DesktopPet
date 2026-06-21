@@ -1,0 +1,56 @@
+{
+  "SystemConfig":
+  {
+    "version": "1.0.0",
+    "appName": "DesktopPet",
+    "author": "nuo",
+    "createDate": "2026-04-29",
+    "lastUpdate": "2026-04-29",
+    "autoSaveInterval": 300,
+    "maxBackupCount": 10
+  },
+  "BusinessConfig":
+  {
+    "enableAutoSave": true,
+    "enableSync": false,
+    "defaultNoteType": 0,
+    "maxNoteCountPerFile": 1000,
+    "dataRetentionDays": 30
+  },
+  "LogConfig":
+  {
+    "enableLog": true,
+    "logLevel": "info",
+    "logPath": "./logs/",
+    "maxLogFileSize": 10485760,
+    "maxLogFileCount": 5,
+    "enableConsoleOutput": true
+  },
+  "DataConfig":
+  {
+    "dataPath": "./data/",
+    "fileExtension": ".dat",
+    "backupPath": "./backup/",
+    "enableCompression": false,
+    "encryptionEnabled": false
+  },
+  "DefaultConfig":
+  {
+    "language": "zh_CN",
+    "theme": "light",
+    "fontSize": 12,
+    "autoUpdate": true,
+    "checkUpdateInterval": 86400
+  },
+  "UIConfig":
+  {
+    "windowWidth": 800,
+    "windowHeight": 600,
+    "windowX": 100,
+    "windowY": 100,
+    "isMaximized": false,
+    "showToolbar": true,
+    "showStatusBar": true,
+    "animationEnabled": true
+  }
+}

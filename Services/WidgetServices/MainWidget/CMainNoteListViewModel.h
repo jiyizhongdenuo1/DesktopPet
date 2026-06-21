@@ -14,7 +14,7 @@
 
 class QDataTime;
 
-typedef  struct st_ListNoteItem
+typedef  struct st_NoteModelItem
 {
     INT64       m_s64NoteId;
     INT32       m_s32NoteLevel;
@@ -25,11 +25,11 @@ typedef  struct st_ListNoteItem
     BOOL        m_bCompleted;
     BOOL        m_bDeleted;
     QString     m_strContent;
-    st_ListNoteItem()
+    st_NoteModelItem()
         : m_s64NoteId(0), m_s32NoteLevel(0), m_s64RemindTime(0)
         , m_s64WriteTime(0), m_s32RemindLevel(0), m_s32NoteType(0)
         , m_bCompleted(FALSE), m_bDeleted(FALSE) {}
-}LIST_NOTE_ITEM;
+}NOTE_MODEL_ITEM;
 
 class CMainNoteListViewModel : public QAbstractListModel
 {
@@ -57,7 +57,7 @@ public:
     Q_INVOKABLE void AddNote(const QString &strContent, const QDateTime &time);
     Q_INVOKABLE void UpdateNoteContent(int index, const QString &newContent);
 private:
-    QList<st_ListNoteItem> m_listNote;
+    QList<st_NoteModelItem> m_listNote;
 };
 
 

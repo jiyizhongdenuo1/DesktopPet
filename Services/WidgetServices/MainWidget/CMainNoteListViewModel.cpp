@@ -13,6 +13,7 @@
 CMainNoteListViewModel::CMainNoteListViewModel(QObject *parent)
     : QAbstractListModel(parent)
 {
+
 }
 
 CMainNoteListViewModel::~CMainNoteListViewModel()
@@ -33,7 +34,7 @@ QVariant CMainNoteListViewModel::data(const QModelIndex &index, int role) const
     {
         return QVariant();
     }
-    const st_ListNoteItem &note = m_listNote.at(index.row());
+    const st_NoteModelItem &note = m_listNote.at(index.row());
 
     switch (role)
     {
@@ -69,7 +70,7 @@ void CMainNoteListViewModel::AddNote(const QString &strContent, const QDateTime 
 {
     beginInsertRows(QModelIndex(), m_listNote.size(), m_listNote.size());
 
-    st_ListNoteItem newNote;
+    st_NoteModelItem newNote;
     newNote.m_s64NoteId    = m_listNote.size() + 1; // 简单的 ID 递增
     newNote.m_s64WriteTime = time.toMSecsSinceEpoch();
     newNote.m_strContent   = strContent;
@@ -78,7 +79,6 @@ void CMainNoteListViewModel::AddNote(const QString &strContent, const QDateTime 
     endInsertRows();
 
 //    emit countChanged(); // 触发信号通知 QML
-
 }
 
 void CMainNoteListViewModel::UpdateNoteContent(int index, const QString &newContent)

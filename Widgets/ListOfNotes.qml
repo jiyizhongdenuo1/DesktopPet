@@ -1,41 +1,35 @@
-
 import QtQuick
 import QtQuick.Controls 2.15
 import QtQuick.Layouts
 import content 1.0
-Item{
+
+Item {
     id: mainListView
     width: 640
     height: 1020
     property int currentClickIndex: -1
 
-    Column
-    {
+    Column {
         anchors.fill: parent
         spacing: 5
 
-        ListView
-        {
+        ListView {
             id: noteList
             width: parent.width
             height: parent.height - 50
             model: noteModel
 
-            delegate: Rectangle
-            {
+            delegate: Rectangle {
                 width: parent.width
                 height: 50
                 color: mouseArea.containsMouse ? "#f0f0f0" : "#80ffffff"
                 border.color: "#eee"
 
-                RowLayout
-                {
+                RowLayout {
                     anchors.fill: parent
                     anchors.margins: 10
 
-                    // [修复] 删除了外面那层错误的 Text 包裹
-                    Text
-                    {
+                    Text {
                         text: writeTime
                         font.pixelSize: 12
                         color: "gray"
@@ -50,14 +44,12 @@ Item{
                     }
                 }
 
-                MouseArea
-                {
+                MouseArea {
                     id: mouseArea
                     anchors.fill: parent
                     hoverEnabled: true
 
-                    onClicked:
-                    {
+                    onClicked: {
                         currentClickIndex = index
                         inputDialog.title = "Edit Note"
                         inputDialog.isEdit = true
@@ -67,17 +59,17 @@ Item{
                 }
             }
         }
-        Rectangle
-        {
+
+        Rectangle {
             width: parent.width
             height: 50
             color: "#80f8f8f8"
-            Button
-            {
+
+            Button {
                 text: "Add Note"
                 anchors.centerIn: parent
-                onClicked:
-                {
+                onClicked: {
+                    currentClickIndex = -1
                     inputDialog.title = "Add Note"
                     inputDialog.isEdit = false
                     inputDialog.open()
@@ -86,32 +78,27 @@ Item{
         }
     }
 
-    // 弹出的输入对话框
-    PopInputNoteDia
-    {
+    PopInputNoteDia {
         id: inputDialog
         width: 400
         height: 200
         anchors.centerIn: parent
-        onRejected: function()
-        {
+
+        onRejected: {
             currentClickIndex = -1
         }
-        onAccepted: function()
-        {
-            if(inputDialog.inputText.length > 0)
-            {
-                if(currentClickIndex === -1)
-                {
-                    noteModel.AddNote(inputDialog.inputText)
+
+        onAccepted: {
+            if (inputDialog.inputText.length > 0) {
+                if (currentClickIndex === -1) {
+                    // 添加新笔记
+                    noteModel.AddNote(inputDialog.inputText, new Date())
+                } else {
+                    // 编辑现有笔记
+                    noteModel.UpdateNoteContent(currentClickIndex, inputDialog.inputText)
                 }
             }
-            else
-            {
-                // 编辑（这里演示修改状态，你可以扩展 C++ 接口来修改内容）
-                noteModel.ChangeEventState(currentClickIndex, 0)
-                console.log("准备更新索引", currentClickIndex, "内容为:", content)
-            }
+            currentClickIndex = -1
         }
     }
 }
