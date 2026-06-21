@@ -1,3 +1,0 @@
-/home/nuo/CLionProjects/DesktopPet/bin/CMakeFiles/DesktopPet.dir
-/home/nuo/CLionProjects/DesktopPet/bin/CMakeFiles/edit_cache.dir
-/home/nuo/CLionProjects/DesktopPet/bin/CMakeFiles/rebuild_cache.dir
