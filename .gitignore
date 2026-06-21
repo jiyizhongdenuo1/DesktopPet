@@ -1,0 +1,6 @@
+.CodeExportDir
+./Autoqmldir
+./qodana.yaml
+bin/
+build/
+.qtcreator
