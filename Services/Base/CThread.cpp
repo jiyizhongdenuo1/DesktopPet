@@ -59,13 +59,13 @@ void CThread::SetInterval(INT32 s32Interval)
     d->m_s32Interval = s32Interval;
 }
 
-void CThread::run()
+void CThread::run ()
 {
     Q_D(CThread);
 
     while (!d->m_bIsExit)
     {
-        d->m_Semaphore.acquire();
+        d->m_Semaphore.tryAcquire(1, d_ptr->m_s32Interval > 0 ? d_ptr->m_s32Interval : -1);
 
         if (d->m_bIsExit)
         {

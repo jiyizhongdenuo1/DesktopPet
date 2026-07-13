@@ -11,7 +11,7 @@
 
 namespace CPath
 {
-    constexpr char STORE_PATH[] = ":/config/";
+    constexpr char STORE_PATH[] = "./config/";
     constexpr char COMMON_COFNIG_FILE_NAME[] = "CommonConfig.json";
     constexpr char NOTE_FILE_NAME[] = "NoteData";
 }

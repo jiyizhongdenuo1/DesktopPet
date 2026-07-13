@@ -1,5 +1,5 @@
 {
-  "SystemConfig":
+  "SYSTEM":
   {
     "version": "1.0.0",
     "appName": "DesktopPet",
@@ -9,7 +9,7 @@
     "autoSaveInterval": 300,
     "maxBackupCount": 10
   },
-  "BusinessConfig":
+  "BUSINESS":
   {
     "enableAutoSave": true,
     "enableSync": false,
@@ -17,7 +17,7 @@
     "maxNoteCountPerFile": 1000,
     "dataRetentionDays": 30
   },
-  "LogConfig":
+  "LOG":
   {
     "enableLog": true,
     "logLevel": "info",
@@ -26,7 +26,7 @@
     "maxLogFileCount": 5,
     "enableConsoleOutput": true
   },
-  "DataConfig":
+  "DATA":
   {
     "dataPath": "./data/",
     "fileExtension": ".dat",
@@ -34,7 +34,7 @@
     "enableCompression": false,
     "encryptionEnabled": false
   },
-  "DefaultConfig":
+  "DEFAULT":
   {
     "language": "zh_CN",
     "theme": "light",
@@ -42,7 +42,7 @@
     "autoUpdate": true,
     "checkUpdateInterval": 86400
   },
-  "UIConfig":
+  "UI":
   {
     "windowWidth": 800,
     "windowHeight": 600,
@@ -52,5 +52,10 @@
     "showToolbar": true,
     "showStatusBar": true,
     "animationEnabled": true
+  },
+  "DATA_SAVE_FILE":
+  {
+    "fileLimit": 10000,
+    "singleSaveCount": 100
   }
 }

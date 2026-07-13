@@ -9,16 +9,14 @@
 #include <QDateTime>
 
 #include "CMainNoteListViewModel.h"
+#include "CNoteDataCollect.h"
+#include "CDataCollectFactory.h"
 
 CMainNoteListViewModel::CMainNoteListViewModel(QObject *parent)
     : QAbstractListModel(parent)
+    , m_pNoteDataCollect(nullptr)
 {
-
-}
-
-CMainNoteListViewModel::~CMainNoteListViewModel()
-{
-
+    Init();
 }
 
 int CMainNoteListViewModel::rowCount(const QModelIndex &parent) const
@@ -39,14 +37,14 @@ QVariant CMainNoteListViewModel::data(const QModelIndex &index, int role) const
     switch (role)
     {
         case RoleNoteId:            return note.m_s64NoteId;
-        case RoleNoteLevel:         return note.m_s32NoteLevel;
+        case RoleNoteLevel:         return note.m_eNoteLevel;
         case RoleNoteContent:       return note.m_strContent;
-        case RoleNoteWriteTime:     return QDateTime::fromSecsSinceEpoch(note.m_s64WriteTime).toString("yyyy-MM-dd hh:mm");
-        case RoleNoteRemindTime:    return QDateTime::fromSecsSinceEpoch(note.m_s64RemindTime).toString("yyyy-MM-dd hh:mm");
-        case RoleNoteRemindType:    return note.m_s32NoteType;
+        case RoleNoteWriteTime:     return QDateTime::fromMSecsSinceEpoch(note.m_s64WriteTime).toString("yyyy-MM-dd hh:mm");
+        case RoleNoteRemindTime:    return QDateTime::fromMSecsSinceEpoch(note.m_s64RemindTime).toString("yyyy-MM-dd hh:mm");
+        case RoleNoteRemindType:    return note.m_s32RemindLevel;
         case RoleNoteCompleted:     return note.m_bCompleted;
         case RoleNoteDeleted:       return note.m_bDeleted; // 简单取第一行作为标题
-        case RoleNoteType:          return note.m_s32NoteType;
+        case RoleNoteType:          return note.m_eEventType;
         default:                    return QVariant();
     }
 }
@@ -59,6 +57,7 @@ QHash<int, QByteArray> CMainNoteListViewModel::roleNames() const
         roles[RoleNoteType]         = "noteType";
         roles[RoleNoteLevel]        = "noteLevel";
         roles[RoleNoteWriteTime]    = "writeTime";
+        roles[RoleNoteModifyTime]   = "modifyTime";
         roles[RoleNoteRemindTime]   = "remindTime";
         roles[RoleNoteRemindType]   = "remindType";
         roles[RoleNoteCompleted]    = "isCompleted";
@@ -78,6 +77,13 @@ void CMainNoteListViewModel::AddNote(const QString &strContent, const QDateTime 
 
     endInsertRows();
 
+    if (m_pNoteDataCollect)
+    {
+        m_pNoteDataCollect->AddNoteData(newNote);
+    }
+    // m_queueUnSaveNote.append(newNote);
+
+
 //    emit countChanged(); // 触发信号通知 QML
 }
 
@@ -91,4 +97,10 @@ void CMainNoteListViewModel::UpdateNoteContent(int index, const QString &newCont
         QModelIndex qIndex = createIndex(index, 0);
         emit dataChanged(qIndex, qIndex, {RoleNoteContent});
     }
+}
+
+void CMainNoteListViewModel::Init()
+{
+    auto ptr_Base = g_CDataCollectFactory->GetCDataCollect(E_COLLECTION_TYPE_NOTE);
+    m_pNoteDataCollect = dynamic_pointer_cast<CNoteDataCollect>(ptr_Base);
 }

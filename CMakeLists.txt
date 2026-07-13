@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.28.3)
 project(DesktopPet VERSION 1.0.0 LANGUAGES CXX)
+
+# 设置 CMP0177 策略以消除警告
+if(POLICY CMP0177)
+    cmake_policy(SET CMP0177 OLD)
+endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -59,7 +64,7 @@ target_link_libraries(DesktopPet PRIVATE
 # 安装配置
 # 强制设置项目内部安装路径
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/CodeExportDIr" CACHE PATH "Project install path" FORCE)
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/bin" CACHE PATH "Project install path" FORCE)
 endif()
 
 message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
@@ -70,10 +75,22 @@ install(TARGETS DesktopPet
     LIBRARY DESTINATION lib
 )
 
-install (FILES config/* DESTINATION ./config/)
+install(DIRECTORY config/ DESTINATION config/)
 
+# 构建时自动复制 config 文件夹
+add_custom_command(TARGET DesktopPet POST_BUILD
+        COMMAND ${CMAKE_SOURCE_DIR}/Scripts/pack.sh ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/bin/
+        COMMENT "Copying config folder to output directory"
+)
 # 添加清理目标
 add_custom_target(clean-all
         COMMAND rm -rf ${CMAKE_BINARY_DIR}/*
         COMMENT "Cleaning all build files"
 )
+
+# 测试配置
+#option(BUILD_TESTS "Build tests" OFF)
+#if(BUILD_TESTS)
+#    enable_testing()
+#    add_subdirectory(TestCode)
+#endif()

@@ -68,6 +68,7 @@ void CAppBootstrapper::Initialize(int argc, char* argv[])
     LoadConfiguration();
     RegisterServices();
     InitializeQtApplication(argc, argv);
+    InitializeAppSystem();
     InitializeQmlEngine();
 
     m_bInitialized = true;
@@ -172,5 +173,5 @@ void CAppBootstrapper::HandleFatalError(const char* errorMsg)
 
 void CAppBootstrapper::InitializeAppSystem()
 {
-    // g_CAppSystem->InitAppFrame();
+    g_CAppSystem->IniAppFrame();
 }

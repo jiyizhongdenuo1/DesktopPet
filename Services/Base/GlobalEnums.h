@@ -8,6 +8,7 @@
 #pragma once
 using std::shared_ptr;
 using std::unique_ptr;
+
 enum E_THREAD_ID
 {
     E_THREAD_SAVE_DATA = 0,

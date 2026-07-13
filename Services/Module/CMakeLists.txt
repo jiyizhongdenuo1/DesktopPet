@@ -1,3 +1,5 @@
-
 add_subdirectory(Common)
 add_subdirectory(BusinessModule)
+add_subdirectory(Applaction)
+add_subdirectory(Other)
+add_subdirectory(Translation)

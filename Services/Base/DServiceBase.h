@@ -5,13 +5,13 @@
 
 namespace NoteSpace
 {
-    constexpr int s32NoteDataEventCount = 1024; ///< 便签关联事件/附件指针数组的最大容量
-    constexpr int s32MaxContentLength = 4096;   ///< 便签内容的最大长度限制（字节）
+    constexpr int NOTE_DATA_EVENT_COUNT = 1024; ///< 便签关联事件/附件指针数组的最大容量
+    constexpr int CONTENT_LENGTH_MAX = 4096;   ///< 便签内容的最大长度限制（字节）
 }
 
 namespace FixedValueSpace
 {
-    constexpr int s32ReservedCount = 20; ///< 结构体末尾预留指针数组的容量，用于未来功能扩展
+    constexpr int RESERVED_COUNT = 20; ///< 结构体末尾预留指针数组的容量，用于未来功能扩展
 }
 
 
@@ -41,7 +41,7 @@ typedef struct st_NoteData
 {
     // --- 基础信息 ---
     INT32                           m_s32id;                    ///< 便签唯一标识 ID (主键)
-    char                            m_szContent[NoteSpace::s32MaxContentLength]; ///< 便签具体内容（使用定长数组以确保结构体偏移量固定）
+    char                            m_szContent[NoteSpace::CONTENT_LENGTH_MAX]; ///< 便签具体内容（使用定长数组以确保结构体偏移量固定）
 
     // --- 分类与等级 ---
     E_NOTE_EVENT_WAKEUP_LEVEL       m_eNoteLevel;               ///< 重要程度等级
@@ -53,7 +53,7 @@ typedef struct st_NoteData
     time_t                          m_s64UpdateTime;            ///< 最后修改时间
 
     // --- 扩展数据 ---
-    char *                          m_cEvent[NoteSpace::s32NoteDataEventCount];  ///< 关联事件或附件的指针数组
+    char *                          m_cEvent[NoteSpace::NOTE_DATA_EVENT_COUNT];  ///< 关联事件或附件的指针数组
     INT32                           m_s32RemindLevel;           ///< 提醒重复级别（如：每天、每周、每月）
 
     // --- 状态标记 ---
@@ -62,7 +62,7 @@ typedef struct st_NoteData
     BOOL                            m_bSynced;                  ///<  同步状态 (TRUE: 已同步至云端 / FALSE: 本地待同步)
 
     // --- 预留空间 ---
-    char *                          m_cReserved[FixedValueSpace::s32ReservedCount];  ///< 预留指针数组，用于未来扩展而不破坏二进制兼容性
+    char *                          m_cReserved[FixedValueSpace::RESERVED_COUNT];  ///< 预留指针数组，用于未来扩展而不破坏二进制兼容性
 
     st_NoteData()
         : m_s32id(0)
@@ -86,7 +86,7 @@ typedef struct st_NoteData
         std::memset(this, 0, sizeof(st_NoteData));
     }
 
-} STNOTEDATA;
+} ST_NOTE_DATA;
 #pragma pack(pop)
 
 
@@ -121,3 +121,4 @@ typedef struct st_FileHeaderBase
         return m_s64SingleSTSize;
     }
 }FILE_HEADER_BASE;
+

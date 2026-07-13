@@ -45,5 +45,5 @@ protected:
 private:
     void ExitThread();
 private:
-    QScopedPointer<CThreadPrivate> d_ptr;
+    std::unique_ptr<CThreadPrivate> d_ptr;
 };

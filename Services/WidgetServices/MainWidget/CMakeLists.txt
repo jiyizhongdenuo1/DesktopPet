@@ -26,17 +26,6 @@ target_include_directories(CMainWidgetServices PUBLIC
 # 链接依赖库
 target_link_libraries(CMainWidgetServices PUBLIC
     BaseServices
+    DataManager
     Qt6::Core
-)
-
-# 导出配置
-install(TARGETS CMainWidgetServices
-    EXPORT CMainWidgetServicesTargets
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
-)
-
-install(FILES CMainNoteListViewModel.h
-    DESTINATION include/CMainWidgetServices
 )

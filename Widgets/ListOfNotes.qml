@@ -8,7 +8,18 @@ Item {
     width: 640
     height: 1020
     property int currentClickIndex: -1
+    property bool isAddNote: false
 
+    function addNote() {
+        if (noteList.footerItem &&
+            noteList.footerItem.newNoteInput &&
+            noteList.footerItem.newNoteInput.text.length > 0) {
+
+            noteModel.AddNote(noteList.footerItem.newNoteInput.text, new Date())
+            noteList.footerItem.newNoteInput.text = ""
+            addNoteTime.stop()
+        }
+    }
     Column {
         anchors.fill: parent
         spacing: 5
@@ -51,11 +62,70 @@ Item {
 
                     onClicked: {
                         currentClickIndex = index
-                        inputDialog.title = "Edit Note"
+                        inputDialog.dialogTitle = "Edit Note"
                         inputDialog.isEdit = true
-                        inputDialog.textInput.text = noteContent
+                        inputDialog.initialText = noteContent
                         inputDialog.open()
                     }
+                }
+            }
+            footer:Rectangle{
+                id: footerItem
+                width:parent.width
+                height: 50
+                color: "#80f8f8f8"
+                border.color: "#eee"
+
+                RowLayout{
+                    anchors.fill: parent
+                    TextField{
+                        id:newNoteInput
+                        // anchors.fill: parent
+                        color: "#000000"
+                        placeholderText: "Add a new note..."
+                        Layout.fillWidth: true
+                        font.pixelSize: 16
+
+                        background: Rectangle {
+                            color: "transparent"
+                            border.width: 0
+                        }
+
+                        Keys.onEnterPressed:
+                        {
+                            addNote()
+                        }
+                        onTextChanged:
+                        {
+                            if (newNoteInput.text.length > 0) {
+                                addNoteTime.restart()
+                            }
+                            else
+                            {
+                                addNoteTime.stop()
+                            }
+                        }
+                        onFocusChanged:
+                        {
+                            if (!newNoteInput.focus)
+                            {
+                                addNote()
+                            }
+                            else
+                            {
+                            }
+                        }
+                    }
+                }
+            }
+            Timer {
+                id: addNoteTime
+                interval:2000
+                repeat:false
+
+                onTriggered:
+                {
+                    addNote()
                 }
             }
         }
@@ -101,4 +171,8 @@ Item {
             currentClickIndex = -1
         }
     }
+
+    // Component.onDestruction: {
+    //     addNote()
+    // }
 }

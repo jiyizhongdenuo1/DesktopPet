@@ -12,6 +12,7 @@ add_library(BaseServices SHARED
         CThreadHandler.h
         GlobalEnums.h
         CommonDefine.h
+        CDataCollectBase.h
 )
 
 target_compile_definitions(BaseServices
@@ -26,23 +27,23 @@ target_include_directories(BaseServices PUBLIC
 )
 
 # 设置导出目标
-install(TARGETS BaseServices
-    EXPORT BaseServicesTargets
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
-)
-
-install(FILES 
-    datatype.h
-    DServiceBase.h
-    Business_G.h
-    CThreadHandler.h
-    CThread.h
-    GlobalEnums.h
-    CommonDefine.h
-    DESTINATION include/BaseServices
-)
+#install(TARGETS BaseServices
+#    EXPORT BaseServicesTargets
+#    LIBRARY DESTINATION lib
+#    ARCHIVE DESTINATION lib
+#    RUNTIME DESTINATION bin
+#)
+#
+#install(FILES
+#    datatype.h
+#    DServiceBase.h
+#    Business_G.h
+#    CThreadHandler.h
+#    CThread.h
+#    GlobalEnums.h
+#    CommonDefine.h
+#    DESTINATION include/BaseServices
+#)
 
 # 设置库的属性
 #set_target_properties(BaseServices PROPERTIES
