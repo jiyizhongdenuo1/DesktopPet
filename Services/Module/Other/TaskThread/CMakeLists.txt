@@ -10,10 +10,13 @@ add_library(TaskThread SHARED
 )
 
 target_include_directories(TaskThread PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:include/TaskThread>
 )
 target_link_libraries(TaskThread
         PRIVATE
         BaseServices
         DataReadWriterModule
+        DataCache
+        DataManager
 )

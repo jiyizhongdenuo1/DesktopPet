@@ -8,6 +8,9 @@ target_link_libraries(Bootstrapper
         CAppSystem
         CMainWidgetServices
         Factory
+        DataReadWriterModule
+        DataManager
+        DataCache
 )
 
 target_include_directories(Bootstrapper PUBLIC

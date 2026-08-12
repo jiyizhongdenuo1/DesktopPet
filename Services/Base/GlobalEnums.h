@@ -11,7 +11,7 @@ using std::unique_ptr;
 
 enum E_THREAD_ID
 {
-    E_THREAD_SAVE_DATA = 0,
+    E_THREAD_DYNC_DATA = 0,
     E_THREAD_LOG,
     E_THREAD_SYSTEM,
 

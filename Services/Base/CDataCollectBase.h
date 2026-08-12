@@ -36,7 +36,7 @@ public:
         }
         else
         {
-            memcpy(pcBuffer, m_cBuffer.get(), m_s32BufferSize - m_s32ReadPos);
+            memcpy(pcBuffer, m_cBuffer.get() + m_s32ReadPos, m_s32BufferSize - m_s32ReadPos);
             memcpy(pcBuffer + m_s32BufferSize - m_s32ReadPos, m_cBuffer.get(), s32_ReadSize - m_s32BufferSize + m_s32ReadPos);
             m_s32ReadPos = s32_ReadSize + m_s32ReadPos % m_s32BufferSize;
         }
@@ -73,6 +73,18 @@ public:
     INT32 GetBufferSize() const
     {
         return m_s32BufferSize;
+    }
+
+    bool HasUnsavedData() const
+    {
+        return m_s32UnSaveSize > 0;
+    }
+
+    void ResetBuffer()
+    {
+        m_s32UnSaveSize = 0;
+        m_s32CurrentPos = 0;
+        m_s32ReadPos = 0;
     }
 
 

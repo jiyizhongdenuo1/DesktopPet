@@ -13,6 +13,8 @@ add_library(BaseServices SHARED
         GlobalEnums.h
         CommonDefine.h
         CDataCollectBase.h
+        INoteDataBuffer.h
+        DDataMgrBase.h
 )
 
 target_compile_definitions(BaseServices

@@ -52,7 +52,7 @@ public:
      * @brief 转移线程所有权
      * @return 返回包含所有线程的 vector，调用后工厂不再持有线程
      */
-    std::vector<std::unique_ptr<CThread>> ReleaseThreads()
+    std::vector<std::shared_ptr<CThread>> ReleaseThreads()
     {
         return std::move(m_vecpThread);
     }
@@ -76,7 +76,7 @@ private:
     void InitThreadHanders();
     void ThreadModule();
 private:
-    std::vector<unique_ptr<CThread>>                   m_vecpThread;
+    std::vector<shared_ptr<CThread>>                   m_vecpThread;
     std::vector<shared_ptr<CThreadHandler>>            m_vecpThreadHanders;
 
 };

@@ -10,9 +10,6 @@ target_link_libraries(Config
 )
 
 target_include_directories(Config PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR})
-
-#target_include_directories(Config PUBLIC
-#        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-#        $<INSTALL_INTERFACE:include/Config>
-#)
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:include/Config>
+)

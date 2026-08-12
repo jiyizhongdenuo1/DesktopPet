@@ -3,18 +3,17 @@
 add_library(DataReadWriterModule SHARED
         CDataSave.cpp
         CDataSave.h
-        CDataSaveRWMgr.cpp
-        CDataSaveRWMgr.h
-        CNoteDataRW.cpp
-        CNoteDataRW.h
+        CDataRWMgr.cpp
+        CDataRWMgr.h
         DSaveDefine.h
 )
 target_link_libraries(DataReadWriterModule
         PRIVATE
         BaseServices
-        DataManager
         Config)
 
 target_include_directories(DataReadWriterModule
-        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+        PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:include/DataReadWriter>
 )

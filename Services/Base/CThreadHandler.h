@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <memory>
 #include <Business_G.h>
 #include  "datatype.h"
 
@@ -17,7 +18,6 @@ class Q_DECL_EXPORT CThreadHandler
 public:
     friend class CThread;
     CThreadHandler()
-        :m_pThread(nullptr)
     {
 
     }
@@ -33,7 +33,7 @@ public:
     }
     virtual void HandleTask() = 0;
 private:
-    void AttachThread(CThread *pThread){ m_pThread = pThread;}
+    void AttachThread(std::shared_ptr<CThread> pThread){ m_pThread = pThread;}
 protected:
-    CThread * m_pThread;
+    std::weak_ptr<CThread> m_pThread;
 };

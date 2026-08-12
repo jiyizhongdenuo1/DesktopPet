@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QThread>
+#include <memory>
 
 #include "datatype.h"
 #include "Business_G.h"
@@ -16,7 +17,7 @@
 class CThreadHandler;
 class CThreadPrivate;
 
-class BUSINESS_EXPORT CThread: public QThread
+class BUSINESS_EXPORT CThread: public QThread, public std::enable_shared_from_this<CThread>
 {
     Q_OBJECT
     Q_DECLARE_PRIVATE(CThread)

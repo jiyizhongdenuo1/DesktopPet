@@ -24,8 +24,10 @@ target_include_directories(CMainWidgetServices PUBLIC
 )
 
 # 链接依赖库
-target_link_libraries(CMainWidgetServices PUBLIC
+target_link_libraries(CMainWidgetServices PRIVATE
     BaseServices
     DataManager
+    DataCache
+    DataReadWriterModule
     Qt6::Core
 )

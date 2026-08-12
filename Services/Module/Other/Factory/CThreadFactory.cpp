@@ -50,12 +50,12 @@ void CThreadFactory::InitThread()
     {
         {"AppLog Thread",       m_vecpThreadHanders[E_THREAD_LOG],          1000,  QThread::NormalPriority },
         {"AppSystem Thread",    m_vecpThreadHanders[E_THREAD_SYSTEM],       1000,  QThread::NormalPriority },
-        {"DataSave Thread",     m_vecpThreadHanders[E_THREAD_SAVE_DATA],       1000,  QThread::NormalPriority },
+        {"DataSave Thread",     m_vecpThreadHanders[E_THREAD_DYNC_DATA],       1000,  QThread::NormalPriority },
     };
 
     for(INT32U i = 0; i < ARRAYSIZE(st_TaskArr); ++i)
     {
-        auto pThread = std::make_unique<CThread>(st_TaskArr[i].m_strThreadName,
+        auto pThread = std::make_shared<CThread>(st_TaskArr[i].m_strThreadName,
                                                  st_TaskArr[i].m_pThreadHandler,
                                                  st_TaskArr[i].m_s32Interval);
 
@@ -74,7 +74,7 @@ void CThreadFactory::InitThreadHanders()
     m_vecpThreadHanders.resize(E_THREAD_MAX);
     m_vecpThreadHanders[E_THREAD_LOG] = std::make_shared<CLogThreadHandler>();
     m_vecpThreadHanders[E_THREAD_SYSTEM] = std::make_shared<CSystemThreadHandler>();
-    m_vecpThreadHanders[E_THREAD_SAVE_DATA] = std::make_shared<CDynsDataSaveThreadHandler>();
+    m_vecpThreadHanders[E_THREAD_DYNC_DATA] = std::make_shared<CDynsDataSaveThreadHandler>();
 }
 
 void CThreadFactory::ThreadModule()

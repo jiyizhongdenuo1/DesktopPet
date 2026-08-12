@@ -87,10 +87,3 @@ add_custom_target(clean-all
         COMMAND rm -rf ${CMAKE_BINARY_DIR}/*
         COMMENT "Cleaning all build files"
 )
-
-# 测试配置
-#option(BUILD_TESTS "Build tests" OFF)
-#if(BUILD_TESTS)
-#    enable_testing()
-#    add_subdirectory(TestCode)
-#endif()

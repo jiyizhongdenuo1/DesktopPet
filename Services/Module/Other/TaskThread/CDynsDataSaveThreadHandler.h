@@ -8,36 +8,54 @@
 
 #pragma once
 
-#include <QVariantHash>
+#include <string>
+#include <unordered_map>
+#include <memory>
 #include "CThreadHandler.h"
 #include "datatype.h"
 
-struct DataSaveEvent
+typedef struct st_DataSaveEvent
 {
     std::string strMsgKey;
-    QVariantHash params;
-};
+    std::unordered_map<std::string, std::string> mapParams;
+} ST_DATA_SAVE_EVENT;
 
-class CDataSave;
+class CDataRWMgr;
 class CDynsDataSaveThreadHandlerPrivate;
 
 class CDynsDataSaveThreadHandler : public CThreadHandler
 {
 public:
+
     explicit CDynsDataSaveThreadHandler();
     ~CDynsDataSaveThreadHandler();
 
-    virtual void HandleTask() override;
-    void AddTask(const std::string &strKey, const QVariantHash &params);
+    /** ***********************************************************
+     * @brief       处理任务队列中的任务（线程循环调用）
+     * @detail      从队列中逐个取出任务，根据 strMsgKey 查找对应的
+     *              处理函数并执行，处理间隔 1 秒
+     * @note        队列为空时自动返回
+     ************************************************************/
+    void HandleTask() override;
+
+    /** ***********************************************************
+     * @brief       添加任务到处理队列
+     * @param[in]   strKey     任务键名（用于匹配处理函数）
+     * @param[in]   mapParams  任务参数（键值对）
+     * @note        队列上限 1000，超出时丢弃新任务；添加后唤醒工作线程
+     ************************************************************/
+    void AddTask(const std::string &strKey, const std::unordered_map<std::string, std::string> &mapParams);
+
+    /** ***********************************************************
+     * @brief       保存所有待处理数据（阻塞式）
+     * @detail      一次性处理队列中的所有待保存任务，通常用于退出前
+     *              或定期全量保存
+     * @note        调用前需确保 m_pDataSaveRWMgr 有效
+     ************************************************************/
     void SaveAllData();
 
 private:
     std::unique_ptr<CDynsDataSaveThreadHandlerPrivate> d_ptr;
 };
 
-typedef void (*DATASAVE_FUNC)(std::shared_ptr<CDataSave> pDataSave, DataSaveEvent &event);
-
-namespace DataSaveFucName
-{
-    constexpr auto MSG_DATASAVE_NOTE = "SaveNoteData";
-}
+typedef void (*DATASAVE_FUNC)(std::shared_ptr<CDataRWMgr> pDataRWMgr, ST_DATA_SAVE_EVENT &event);

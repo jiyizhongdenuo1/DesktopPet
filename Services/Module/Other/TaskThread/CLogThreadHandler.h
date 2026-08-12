@@ -8,8 +8,9 @@
 
 #pragma once
 
-#include <QVariantHash>
-
+#include <string>
+#include <unordered_map>
+#include <memory>
 #include "datatype.h"
 #include "CThreadHandler.h"
 
@@ -18,29 +19,27 @@ constexpr std::string MSG_STOP_REC_LOG = "stop_rec_log";
 
 typedef struct stLogEvent
 {
-public:
     std::string     strMsgKey;
-    QVariantHash    params;
-}ST_LOG_EVENT;
+    std::unordered_map<std::string, std::string> params;
+} ST_LOG_EVENT;
 
 class CLogThreadHandlerPrivate;
 
 class CLogThreadHandler : public CThreadHandler
 {
-    Q_DECLARE_PRIVATE(CLogThreadHandler)
 public:
     CLogThreadHandler();
     ~CLogThreadHandler();
 
     virtual void HandleTask() override;
-    // void AddTask(const std::string &strKey, const QVariantHash &params);
+
+    void AddTask(const std::string &strKey, const std::unordered_map<std::string, std::string> &mapParams);
 
 private:
     void LogInit();
-    void LogWrite2File(const char* log, qint64 size);
+    void LogWrite2File(const char *log, qint64 size);
     bool LogFileRotate();
 
 private:
     std::unique_ptr<CLogThreadHandlerPrivate> d_ptr;
 };
-

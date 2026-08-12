@@ -36,6 +36,26 @@ enum E_NOTE_EVENT_WAKEUP_LEVEL
     E_NOTE_EVENT_WAKEUP_LEVEL_MAX                   ///< 边界值
 };
 
+enum E_NOTE_TIME_SPAN_TYPE
+{
+    E_NOTE_TIME_SPAN_ONCE = 0,                      ///< 单次任务（一次性完成，有明确截止日期）
+    E_NOTE_TIME_SPAN_LONG_TERM,                     ///< 长期任务（持续性习惯、周期性目标）
+
+    E_NOTE_TIME_SPAN_MAX                            ///< 边界值
+};
+
+enum E_NOTE_REMIND_FREQUENCY
+{
+    E_NOTE_REMIND_NONE = 0,                         ///< 不提醒
+    E_NOTE_REMIND_ONCE,                             ///< 单次提醒（到达指定时间触发一次）
+    E_NOTE_REMIND_DAILY,                            ///< 每天提醒
+    E_NOTE_REMIND_WEEKLY,                           ///< 每周提醒
+    E_NOTE_REMIND_MONTHLY,                          ///< 每月提醒
+    E_NOTE_REMIND_CUSTOM,                           ///< 自定义间隔（需配合 m_s64CustomInterval 使用）
+
+    E_NOTE_REMIND_MAX                               ///< 边界值
+};
+
 #pragma pack(push, 1)
 typedef struct st_NoteData
 {
@@ -44,8 +64,9 @@ typedef struct st_NoteData
     char                            m_szContent[NoteSpace::CONTENT_LENGTH_MAX]; ///< 便签具体内容（使用定长数组以确保结构体偏移量固定）
 
     // --- 分类与等级 ---
-    E_NOTE_EVENT_WAKEUP_LEVEL       m_eNoteLevel;               ///< 重要程度等级
-    E_NOTE_EVENT_TYPE               m_eEventType;               ///< 事件类型
+    E_NOTE_EVENT_WAKEUP_LEVEL       m_eNoteLevel;               ///< 重要程度等级（四象限法则）
+    E_NOTE_EVENT_TYPE               m_eEventType;               ///< 事件类型（生活/琐事/工作/学习）
+    E_NOTE_TIME_SPAN_TYPE           m_eTimeSpanType;            ///< 时间跨度类型（单次任务/长期任务）
 
     // --- 时间信息 ---
     time_t                          m_s64RemindTime;            ///< 提醒触发时间 (Unix Timestamp, 0 表示不提醒)
@@ -53,8 +74,8 @@ typedef struct st_NoteData
     time_t                          m_s64UpdateTime;            ///< 最后修改时间
 
     // --- 扩展数据 ---
-    char *                          m_cEvent[NoteSpace::NOTE_DATA_EVENT_COUNT];  ///< 关联事件或附件的指针数组
-    INT32                           m_s32RemindLevel;           ///< 提醒重复级别（如：每天、每周、每月）
+    char                            m_cEvent[NoteSpace::NOTE_DATA_EVENT_COUNT];  ///< 关联事件或附件的指针数组
+    E_NOTE_REMIND_FREQUENCY         m_eRemindFrequency;         ///< 提醒频率（不提醒/单次/每天/每周/每月/自定义）
 
     // --- 状态标记 ---
     BOOL                            m_bCompleted;               ///< 完成状态 (TRUE: 已完成 / FALSE: 进行中)
@@ -62,16 +83,17 @@ typedef struct st_NoteData
     BOOL                            m_bSynced;                  ///<  同步状态 (TRUE: 已同步至云端 / FALSE: 本地待同步)
 
     // --- 预留空间 ---
-    char *                          m_cReserved[FixedValueSpace::RESERVED_COUNT];  ///< 预留指针数组，用于未来扩展而不破坏二进制兼容性
+    char                            m_cReserved[FixedValueSpace::RESERVED_COUNT];  ///< 预留指针数组，用于未来扩展而不破坏二进制兼容性
 
     st_NoteData()
         : m_s32id(0)
         , m_eNoteLevel(E_NOTE_EVENT_WAKEUP_LEVEL_NORMAL)
         , m_eEventType(E_NOTE_EVENT_NONE)
+        , m_eTimeSpanType(E_NOTE_TIME_SPAN_ONCE)
         , m_s64RemindTime(0)
         , m_s64NoteTime(0)
         , m_s64UpdateTime(0)
-        , m_s32RemindLevel(0)
+        , m_eRemindFrequency(E_NOTE_REMIND_NONE)
         , m_bCompleted(FALSE)
         , m_bDeleted(FALSE)
         , m_bSynced(FALSE)
@@ -120,5 +142,10 @@ typedef struct st_FileHeaderBase
     {
         return m_s64SingleSTSize;
     }
-}FILE_HEADER_BASE;
+    void SetStoreCount(INT64 s64StoreCount)
+    {
+        m_s64FileStoreCount = s64StoreCount;
+    }
 
+
+}FILE_HEADER_BASE;

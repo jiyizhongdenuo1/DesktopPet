@@ -13,9 +13,10 @@
 
 #include "datatype.h"
 #include "DDataMgrBase.h"
+#include "DDataCache.h"
 
 class QDataTime;
-class CNoteDataCollect;
+class CNoteDataService;
 
 class CMainNoteListViewModel : public QAbstractListModel
 {
@@ -40,14 +41,15 @@ public:
     {
         RoleNoteId = Qt::UserRole + 1,     ///< 笔记ID
         RoleNoteContent,                   ///< 笔记内容
-        RoleNoteLevel,                     ///< 笔记级别
+        RoleNoteLevel,                     ///< 重要程度等级（四象限）
+        RoleNoteTimeSpanType,              ///< 时间跨度类型（单次/长期）
         RoleNoteWriteTime,                 ///< 写入时间
         RoleNoteModifyTime,                ///< 修改时间
         RoleNoteRemindTime,                ///< 提醒时间
-        RoleNoteRemindType,                ///< 提醒类型
+        RoleNoteRemindFrequency,           ///< 提醒频率（不提醒/单次/每天/每周/每月）
         RoleNoteCompleted,                 ///< 是否已完成
         RoleNoteDeleted,                   ///< 是否已删除
-        RoleNoteType                       ///< 笔记类型
+        RoleNoteType                       ///< 事件类型（生活/琐事/工作/学习）
     };
 
     /**
@@ -84,10 +86,12 @@ public:
      * @param newContent 新内容
      */
     Q_INVOKABLE void UpdateNoteContent(int index, const QString &newContent);
-
+    void PutArrNoteData(std::shared_ptr<std::array<ST_NOTE_DATA, DDataCache::MAX_CACHE_SIZE>> pArrData, INT32 s32Count);
 private:
     void Init();
+    void InitService();
 private:
-    QList<st_NoteModelItem> m_listNote;
-    std::shared_ptr<CNoteDataCollect> m_pNoteDataCollect;
+    QHash<INT32, QVector<st_NoteModelItem>> m_hashNoteData;
+    std::shared_ptr<CNoteDataService> m_pNoteService;
+    QVector<st_NoteModelItem> m_vecNote;
 };

@@ -7,7 +7,9 @@ add_library(Factory SHARED
 target_link_libraries(Factory
         PRIVATE
         TaskThread
-        BaseServices
-        TaskThread)
+        BaseServices)
 
-target_include_directories(Factory PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(Factory PUBLIC 
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include/Factory>
+)

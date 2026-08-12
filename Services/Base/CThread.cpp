@@ -6,8 +6,9 @@
  * @Detail: 封装 QThread，提供线程调度和任务处理功能
  */
 
+#include <semaphore>
+#include <chrono>
 #include "CThread.h"
-#include <QSemaphore>
 #include "CThreadHandler.h"
 using namespace std;
 
@@ -29,7 +30,7 @@ public:
 public:
     CThread                         *q_ptr;
     QString                         m_strName;
-    QSemaphore                      m_Semaphore;
+    std::counting_semaphore<>         m_Semaphore{0};
     INT32                           m_s32Interval;
     shared_ptr<CThreadHandler>      m_pTaskHandler;
     BOOL                            m_bIsExit;
@@ -49,45 +50,57 @@ CThread::~CThread()
 
 void CThread::WakeUp(INT32 n)
 {
-    Q_D(CThread);
-    d->m_Semaphore.release(n);
+    d_ptr->m_Semaphore.release(n);
 }
 
 void CThread::SetInterval(INT32 s32Interval)
 {
-    Q_D(CThread);
-    d->m_s32Interval = s32Interval;
+    d_ptr->m_s32Interval = s32Interval;
 }
 
 void CThread::run ()
 {
-    Q_D(CThread);
-
-    while (!d->m_bIsExit)
+    if (d_ptr->m_pTaskHandler)
     {
-        d->m_Semaphore.tryAcquire(1, d_ptr->m_s32Interval > 0 ? d_ptr->m_s32Interval : -1);
+        d_ptr->m_pTaskHandler->AttachThread(shared_from_this());
+    }
 
-        if (d->m_bIsExit)
+    while (!d_ptr->m_bIsExit)
+    {
+        // 等待唤醒：定时模式用超时等待，事件驱动模式用永久阻塞
+        if (d_ptr->m_s32Interval > 0)
+        {
+            // C++20 counting_semaphore::try_acquire_for 要求带类型的时间单位，不同于 Qt 的 QSemaphore::tryAcquire(1, int_ms)
+            d_ptr->m_Semaphore.try_acquire_for(chrono::milliseconds(d_ptr->m_s32Interval));
+        }
+        else
+        {
+            d_ptr->m_Semaphore.acquire();
+        }
+
+        // 退出标志可能在等待期间被设置，需再次检查
+        if (d_ptr->m_bIsExit)
         {
             break;
         }
 
-        if (d->m_pTaskHandler)
+        // 执行实际任务处理
+        if (d_ptr->m_pTaskHandler)
         {
-            d->m_pTaskHandler->HandleTask();
+            d_ptr->m_pTaskHandler->HandleTask();
         }
 
-        if (!d->m_bIsExit && d->m_s32Interval > 0)
+        // 定时模式下任务执行完后 sleep 一个周期，避免忙轮询
+        if (!d_ptr->m_bIsExit && d_ptr->m_s32Interval > 0)
         {
-            msleep(d->m_s32Interval);
+            msleep(d_ptr->m_s32Interval);
         }
     }
 }
 
 void CThread::ExitThread()
 {
-    Q_D(CThread);
-    d->m_bIsExit = true;
+    d_ptr->m_bIsExit = true;
     WakeUp(1);
     wait();
 }

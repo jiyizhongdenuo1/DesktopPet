@@ -9,9 +9,7 @@ qt_add_executable(TestDataMgr
 # 链接依赖库
 target_link_libraries(TestDataMgr PRIVATE
         Qt6::Test
-        DataManager          # 数据管理模块
-        BaseServices         # 基础服务
-        DataReadWriterModule # 数据读写模块
+        DataManager          # 数据管理模块（自动传递 BaseServices 和 DataReadWriterModule）
 )
 
 # 添加测试
