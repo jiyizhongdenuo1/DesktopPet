@@ -37,7 +37,7 @@ public:
 
 private:
     void LogInit();
-    void LogWrite2File(const char *log, qint64 size);
+    void LogWrite2File(const std::string &strLog);
     bool LogFileRotate();
 
 private:

@@ -11,6 +11,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QDebug>
 #include "CAppSystem.h"
 #include "CMainNoteListViewModel.h"
 #include "CThreadFactory.h"
@@ -88,14 +89,14 @@ void CAppBootstrapper::Shutdown()
     if (!m_bInitialized)
         return;
 
-    cout << "[" << m_appName << "] 正在关闭并释放资源..." << endl;
+    qDebug() << "[" << m_appName << "] 正在关闭并释放资源..." ;
 
     m_services.noteCache.reset();
     m_services.noteService.reset();
     // m_services.dataSaver.reset();
 
     m_bInitialized = false;
-    cout << "[" << m_appName << "] 已安全退出。" << endl;
+    qDebug() << "[" << m_appName << "] 已安全退出。" ;
 }
 
 void CAppBootstrapper::ParseCommandLine(int argc, char* argv[])
@@ -182,7 +183,6 @@ void CAppBootstrapper::RunApplicationLogic()
 
     const QUrl url(u"qrc:/qt/qml/Widgets/MainWidget.qml"_qs);
     m_pEngine->load(url);
-
     if (m_pApp)
     {
         m_pApp->exec();
@@ -191,10 +191,10 @@ void CAppBootstrapper::RunApplicationLogic()
 
 void CAppBootstrapper::HandleFatalError(const char* errorMsg)
 {
-    cerr << "[" << m_appName << "] 致命错误：" << errorMsg << endl;
+    qWarning() << "[" << m_appName << "] 致命错误：" << errorMsg ;
 }
 
 void CAppBootstrapper::InitializeAppSystem()
 {
-    g_CAppSystem->IniAppFrame();
+    g_CAppSystem;
 }

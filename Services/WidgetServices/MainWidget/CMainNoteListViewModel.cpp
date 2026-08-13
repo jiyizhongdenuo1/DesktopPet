@@ -7,10 +7,11 @@
  */
 #include <QVariant>
 #include <QDateTime>
+#include <QMetaObject>
 
 #include "CMainNoteListViewModel.h"
 #include "CNoteDataService.h"
-#include "../../Module/Adapter/DataManager/CServiceLocator.h"
+#include "CServiceLocator.h"
 
 CMainNoteListViewModel::CMainNoteListViewModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -134,7 +135,21 @@ void CMainNoteListViewModel::InitService()
     m_pNoteService = g_ServiceLocator.GetNoteService();
     if (m_pNoteService)
     {
+        /*
+         * 注册数据加载回调，处理数据线程读取完成后通知 ViewModel 更新。
+         *
+         * 注意：PutArrNoteData() 内部调用了 QAbstractItemModel 的
+         * beginResetModel() / endResetModel()，这些方法只能在主线程调用。
+         * 数据线程的回调通过 QMetaObject::invokeMethod + Qt::QueuedConnection
+         * 将数据 marshal 到主线程事件队列执行，避免跨线程操作模型导致 SIGSEGV。
+         */
         m_pNoteService->RegisterNoteModelDataLoadCallback(
-            std::bind(&CMainNoteListViewModel::PutArrNoteData, this, std::placeholders::_1, std::placeholders::_2));
+            [this](std::shared_ptr<std::array<ST_NOTE_DATA, DDataCache::MAX_CACHE_SIZE>> pArrData, INT32 s32Count)
+            {
+                QMetaObject::invokeMethod(this, [this, pArrData, s32Count]()
+                {
+                    PutArrNoteData(pArrData, s32Count);
+                }, Qt::QueuedConnection);
+            });
     }
 }

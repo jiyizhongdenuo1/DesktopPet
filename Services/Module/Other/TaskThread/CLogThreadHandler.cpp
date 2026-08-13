@@ -7,12 +7,16 @@
  */
 
 #include "CLogThreadHandler.h"
+#include <QDebug>
+#include <chrono>
+#include <cstdio>
+#include <ctime>
+#include <deque>
+#include <fstream>
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <queue>
-#include <QFile>
-#include <QDateTime>
-#include <QDir>
 
 #include "CThread.h"
 #define DATA_SAVE_PATh "./SaveFile"
@@ -27,24 +31,35 @@ static void LogMessageHandler(QtMsgType type, const QMessageLogContext &context,
         return;
     }
 
-    QString str_Level;
+    const char *szLevel = "DEBUG";
     switch (type)
     {
-    case QtDebugMsg:    str_Level = "DEBUG"; break;
-    case QtInfoMsg:     str_Level = "INFO";  break;
-    case QtWarningMsg:  str_Level = "WARN";  break;
-    case QtCriticalMsg: str_Level = "ERROR"; break;
-    case QtFatalMsg:    str_Level = "FATAL"; break;
+    case QtDebugMsg:    szLevel = "DEBUG"; break;
+    case QtInfoMsg:     szLevel = "INFO";  break;
+    case QtWarningMsg:  szLevel = "WARN";  break;
+    case QtCriticalMsg: szLevel = "ERROR"; break;
+    case QtFatalMsg:    szLevel = "FATAL"; break;
     }
 
-    QString str_Formatted = QString("[%1] [%2] %3:%4 - %5\n")
-        .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz"))
-        .arg(str_Level)
-        .arg(context.file ? context.file : "unknown")
-        .arg(context.line)
-        .arg(msg);
+    auto now = std::chrono::system_clock::now();
+    auto time_t_now = std::chrono::system_clock::to_time_t(now);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    std::tm tm_now{};
+    localtime_r(&time_t_now, &tm_now);
+    char szTime[64];
+    std::strftime(szTime, sizeof(szTime), "%Y-%m-%d %H:%M:%S", &tm_now);
 
-    g_pLogHandler->AddTask(MSG_WRITE_LOG, {{"addlog", str_Formatted.toStdString()}});
+    std::string strFormatted = std::string("[")
+        + szTime + "." + std::to_string(ms.count())
+        + "] [" + szLevel + "] "
+        + (context.file ? context.file : "unknown") + ":"
+        + std::to_string(context.line) + " - "
+        + msg.toStdString() + "\n";
+
+    fprintf(stderr, "%s", strFormatted.c_str());
+    fflush(stderr);
+
+    g_pLogHandler->AddTask(MSG_WRITE_LOG, {{"addlog", strFormatted}});
 }
 
 
@@ -67,11 +82,11 @@ private:
     bool                              m_bStop;
     INT32                             m_s32MaxSize;
     INT32                             m_s32MaxRotate;
-    QFile                             m_file;
-    QString                           m_strFileName;
+    std::ofstream                     m_fileStream;
+    std::string                       m_strFileName;
     std::queue<ST_LOG_EVENT>          m_queLogData;
     std::mutex                        m_Mutex;
-    QStringList                       m_strlist;
+    std::deque<std::string>            m_strlist;
 };
 
 CLogThreadHandler::CLogThreadHandler()
@@ -87,9 +102,9 @@ CLogThreadHandler::~CLogThreadHandler()
 {
     qInstallMessageHandler(0);
 
-    if (d_ptr->m_file.isOpen())
+    if (d_ptr->m_fileStream.is_open())
     {
-        d_ptr->m_file.close();
+        d_ptr->m_fileStream.close();
     }
 }
 
@@ -111,10 +126,9 @@ void CLogThreadHandler::HandleTask()
             auto it = event.params.find("addlog");
             if (it != event.params.end())
             {
-                QString str = QString::fromStdString(it->second);
                 if (d_ptr->m_strlist.size() < 2000)
                 {
-                    d_ptr->m_strlist.append(str);
+                    d_ptr->m_strlist.push_back(it->second);
                 }
             }
 
@@ -123,18 +137,18 @@ void CLogThreadHandler::HandleTask()
                 break;
             }
 
-            while (d_ptr->m_strlist.size() > 0)
+            while (!d_ptr->m_strlist.empty())
             {
-                QString str_Text = d_ptr->m_strlist.takeFirst();
-                QByteArray data = str_Text.toUtf8();
-                LogWrite2File(data.constData(), data.size());
+                std::string str_Text = d_ptr->m_strlist.front();
+                d_ptr->m_strlist.pop_front();
+                LogWrite2File(str_Text);
             }
         }
         else if (event.strMsgKey == MSG_STOP_REC_LOG)
         {
-            if (d_ptr->m_file.isOpen())
+            if (d_ptr->m_fileStream.is_open())
             {
-                d_ptr->m_file.close();
+                d_ptr->m_fileStream.close();
             }
             d_ptr->m_bStop = true;
         }
@@ -163,35 +177,34 @@ void CLogThreadHandler::LogInit()
 {
     g_pLogHandler = this;
     qInstallMessageHandler(LogMessageHandler);
+    qDebug() << "LogMessageHandler installed and working";
 }
 
-void CLogThreadHandler::LogWrite2File(const char *log, qint64 size)
+void CLogThreadHandler::LogWrite2File(const std::string &strLog)
 {
-    if (!log || size <= 0)
+    if (strLog.empty())
     {
         return;
     }
 
-    if (!d_ptr->m_file.isOpen())
+    if (!d_ptr->m_fileStream.is_open())
     {
-        d_ptr->m_strFileName = QString(DATA_SAVE_PATh) + "/" + SAVE_FILE_NAME;
-        QFileInfo fileInfo(d_ptr->m_strFileName);
-        QDir dir = fileInfo.dir();
-        if (!dir.exists())
-        {
-            dir.mkpath(".");
-        }
-        d_ptr->m_file.setFileName(d_ptr->m_strFileName);
-        if (!d_ptr->m_file.open(QIODevice::Append | QIODevice::WriteOnly))
+        d_ptr->m_strFileName = std::string(DATA_SAVE_PATh) + "/" + SAVE_FILE_NAME;
+        std::filesystem::path filePath(d_ptr->m_strFileName);
+        std::filesystem::create_directories(filePath.parent_path());
+        d_ptr->m_fileStream.open(d_ptr->m_strFileName, std::ios::app);
+        if (!d_ptr->m_fileStream.is_open())
         {
             return;
         }
     }
 
-    d_ptr->m_file.write(log, size);
-    d_ptr->m_file.flush();
+    d_ptr->m_fileStream.write(strLog.data(), static_cast<std::streamsize>(strLog.size()));
+    d_ptr->m_fileStream.flush();
 
-    if (d_ptr->m_file.size() > d_ptr->m_s32MaxSize)
+    // 检查文件大小，超过阈值则轮转
+    d_ptr->m_fileStream.seekp(0, std::ios::end);
+    if (d_ptr->m_fileStream.tellp() > d_ptr->m_s32MaxSize)
     {
         LogFileRotate();
     }
@@ -199,27 +212,26 @@ void CLogThreadHandler::LogWrite2File(const char *log, qint64 size)
 
 bool CLogThreadHandler::LogFileRotate()
 {
-    d_ptr->m_file.close();
+    d_ptr->m_fileStream.close();
 
-    QString str_Oldest = d_ptr->m_strFileName + "." + QString::number(d_ptr->m_s32MaxRotate);
-    if (QFile::exists(str_Oldest))
+    std::string str_Oldest = d_ptr->m_strFileName + "." + std::to_string(d_ptr->m_s32MaxRotate);
+    if (std::filesystem::exists(str_Oldest))
     {
-        QFile::remove(str_Oldest);
+        std::filesystem::remove(str_Oldest);
     }
 
     for (INT32 s32_I = d_ptr->m_s32MaxRotate - 1; s32_I >= 1; --s32_I)
     {
-        QString str_Src = d_ptr->m_strFileName + "." + QString::number(s32_I);
-        QString str_Dst = d_ptr->m_strFileName + "." + QString::number(s32_I + 1);
-        if (QFile::exists(str_Src))
+        std::string str_Src = d_ptr->m_strFileName + "." + std::to_string(s32_I);
+        std::string str_Dst = d_ptr->m_strFileName + "." + std::to_string(s32_I + 1);
+        if (std::filesystem::exists(str_Src))
         {
-            QFile::rename(str_Src, str_Dst);
+            std::filesystem::rename(str_Src, str_Dst);
         }
     }
 
-    QFile::rename(d_ptr->m_strFileName, d_ptr->m_strFileName + ".1");
+    std::filesystem::rename(d_ptr->m_strFileName, d_ptr->m_strFileName + ".1");
 
-    d_ptr->m_file.setFileName(d_ptr->m_strFileName);
-    d_ptr->m_file.open(QIODevice::Append | QIODevice::WriteOnly);
+    d_ptr->m_fileStream.open(d_ptr->m_strFileName, std::ios::app);
     return true;
 }
