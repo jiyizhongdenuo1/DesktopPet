@@ -5,13 +5,16 @@
  * @date: 2026/7/25
  */
 
-#include "CAppBootstrapper.h"
+// ========== 系统头文件 ==========
 #include <iostream>
 #include <cstdlib>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QDebug>
+
+// ========== 项目头文件 ==========
+#include "CAppBootstrapper.h"
 #include "CAppSystem.h"
 #include "CMainNoteListViewModel.h"
 #include "CThreadFactory.h"
@@ -21,6 +24,9 @@
 #include "CServiceLocator.h"
 #include "CDataSave.h"
 #include "CDataRWMgr.h"
+#include "CConfigManager.h"
+#include "CCommonConfig.h"
+#include "CUserConfig.h"
 
 using namespace std;
 
@@ -123,6 +129,12 @@ void CAppBootstrapper::RegisterServices()
 
     try
     {
+        cout << "初始化配置管理器..." << endl;
+        auto pCommonConfig = make_shared<CCommonConfig>();
+        auto pUserConfig = make_shared<CUserConfig>();
+        CConfigManager::Initialize(pCommonConfig, pUserConfig);
+        cout << "✓ CConfigManager 初始化完成" << endl;
+
         auto noteCache = make_shared<CNoteDataCache>();
         auto noteCollect = make_shared<CNoteDataCollect>(NDataManager::NOTE_BUFFER_ITEM_COUNT_MAX * static_cast<INT32>(sizeof(NOTE_MODEL_ITEM)));
 
@@ -130,7 +142,8 @@ void CAppBootstrapper::RegisterServices()
         cout << "✓ CNoteDataService 创建完成（已注入缓存和待写队列实例）" << endl;
 
         auto dataSave = make_shared<CDataSave>(make_unique<NOTE_FILE_HEADER>());
-        auto dataSaverMgr = make_shared<CDataRWMgr>(dataSave);
+        string strDataPath = g_ConfigManager->GetDataPath();
+        auto dataSaverMgr = make_shared<CDataRWMgr>(dataSave, strDataPath);
         g_ServiceLocator.RegisterDataSaver(dataSaverMgr);
         cout << "✓ CDataRWMgr 创建完成（已注入 DataSave 实例）" << endl;
 

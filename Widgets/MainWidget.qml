@@ -5,7 +5,7 @@ import QtQuick.Controls
 
 
 Window {
-    width: 460
+    width: 500
     height: 1020
     visible: true
     title: qsTr("C++ Model ListView")
@@ -16,11 +16,22 @@ Window {
         width: parent.width
         height: parent.height
         color: "#80FFFFFF"
-        ListOfNotes
-        {
+        Row{
             anchors.fill: parent
-            // background: Rectangle { color: "transparent" }
+            Rectangle
+            {
+                id: sideNav
+                height: parent.height
+                color: "transparent"
+
+            }
+            ListOfNotes
+            {
+                anchors.fill: parent
+                // background: Rectangle { color: "transparent" }
+            }
         }
+
     }
 
 }

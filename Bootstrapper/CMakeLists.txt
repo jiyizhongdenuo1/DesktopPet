@@ -5,12 +5,14 @@ add_library(Bootstrapper STATIC
 
 target_link_libraries(Bootstrapper
         PRIVATE
+        BaseServices
         CAppSystem
         CMainWidgetServices
         Factory
         DataReadWriterModule
         DataManager
         DataCache
+        ConfigManager
 )
 
 target_include_directories(Bootstrapper PUBLIC

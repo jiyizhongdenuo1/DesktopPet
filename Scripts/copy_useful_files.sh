@@ -2,9 +2,10 @@
 
 # ============================================================
 # @file: copy_useful_files.sh
-# @brief: 拷贝项目源码到上一层目录
+# @brief: 拷贝项目源码到上一层目录（仅源码，不含编译产物和测试）
 # @author: nuo
 # @date: 2026/8/2
+# @update: 2026/8/18 - 适配新目录结构 + 排除编译产物
 # ============================================================
 
 set -e
@@ -17,29 +18,36 @@ echo "开始拷贝..."
 rm -rf "${DEST_DIR}"
 mkdir -p "${DEST_DIR}"
 
-cp -r "${PROJECT_DIR}/Bootstrapper" "${DEST_DIR}/"
-cp -r "${PROJECT_DIR}/Services" "${DEST_DIR}/"
-cp -r "${PROJECT_DIR}/Widgets" "${DEST_DIR}/"
-cp -r "${PROJECT_DIR}/config" "${DEST_DIR}/"
-cp -r "${PROJECT_DIR}/RequirementDoc" "${DEST_DIR}/"
-cp -r "${PROJECT_DIR}/ArchitectureDesign" "${DEST_DIR}/"
-cp -r "${PROJECT_DIR}/Scripts" "${DEST_DIR}/"
+# 1. 复制核心代码目录（排除 bin、build、.git 等编译产物）
+echo "复制 Bootstrapper..."
+rsync -a --exclude='bin/' --exclude='build/' --exclude='.git/' \
+    "${PROJECT_DIR}/Bootstrapper" "${DEST_DIR}/" || true
 
-cp "${PROJECT_DIR}/main.cpp" "${DEST_DIR}/"
-cp "${PROJECT_DIR}/CMakeLists.txt" "${DEST_DIR}/"
-cp "${PROJECT_DIR}/.gitignore" "${DEST_DIR}/"
+echo "复制 Services..."
+rsync -a --exclude='bin/' --exclude='build/' --exclude='.git/' \
+    "${PROJECT_DIR}/Services" "${DEST_DIR}/" || true
 
-if [ -d "${PROJECT_DIR}/TestCode" ]; then
-    mkdir -p "${DEST_DIR}/TestCode"
-    cp -r "${PROJECT_DIR}/TestCode/GoogleTest" "${DEST_DIR}/TestCode/" 2>/dev/null || true
-    cp -r "${PROJECT_DIR}/TestCode/TestDataMgr" "${DEST_DIR}/TestCode/" 2>/dev/null || true
-    cp "${PROJECT_DIR}/TestCode/CMakeLists.txt" "${DEST_DIR}/TestCode/" 2>/dev/null || true
-fi
+echo "复制 Widgets..."
+rsync -a --exclude='bin/' --exclude='build/' --exclude='.git/' \
+    "${PROJECT_DIR}/Widgets" "${DEST_DIR}/" || true
 
-rm -rf "${DEST_DIR}"/Services/*/bin "${DEST_DIR}"/Services/*/*/bin
-rm -rf "${DEST_DIR}"/Services/*/build "${DEST_DIR}"/Services/*/*/build
-rm -rf "${DEST_DIR}"/*/googletest-main
+echo "复制 config..."
+cp -r "${PROJECT_DIR}/config" "${DEST_DIR}/" || true
+
+echo "复制 文档..."
+cp -r "${PROJECT_DIR}/文档" "${DEST_DIR}/" || true
+
+echo "复制 Scripts..."
+cp -r "${PROJECT_DIR}/Scripts" "${DEST_DIR}/" || true
+
+# 2. 复制根目录文件
+cp "${PROJECT_DIR}/main.cpp" "${DEST_DIR}/" || true
+cp "${PROJECT_DIR}/CMakeLists.txt" "${DEST_DIR}/" || true
+cp "${PROJECT_DIR}/.gitignore" "${DEST_DIR}/" || true
+cp "${PROJECT_DIR}/Autoqmldir" "${DEST_DIR}/" || true
 
 echo "✓ 完成！文件在: ${DEST_DIR}"
-
-ls -la "${DEST_DIR}"
+echo ""
+echo "📊 复制统计："
+du -sh "${DEST_DIR}" 2>/dev/null || true
+du -sh "${DEST_DIR}"/* 2>/dev/null | sort -hr || true

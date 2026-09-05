@@ -4,7 +4,8 @@
 # 主界面组件和视图模型
 
 # 创建静态库
-add_library(CMainWidgetServices STATIC CMainNoteListViewModel.cpp
+add_library(CMainWidgetServices STATIC
+        CMainNoteListViewModel.cpp
         CMainNoteListViewModel.h)
 
 # 设置库的属性
@@ -26,6 +27,9 @@ target_include_directories(CMainWidgetServices PUBLIC
 # 链接依赖库
 target_link_libraries(CMainWidgetServices PRIVATE
     BaseServices
+    CoreTypes
+    NoteDomain
+    Interfaces
     DataManager
     DataCache
     DataReadWriterModule

@@ -1,0 +1,75 @@
+{
+  "UICONTENT":
+  {
+    "noteCategories":
+    [
+      {
+        "name": "全部",
+        "color": "#666666",
+        "icon": "📋",
+        "type": -1,
+        "isSystem": true,
+        "canDelete": false
+      },
+      {
+        "name": "生活",
+        "color": "#4CAF50",
+        "icon": "🏠",
+        "type": 1,
+        "isSystem": false,
+        "canDelete": true
+      },
+      {
+        "name": "琐事",
+        "color": "#FF9800",
+        "icon": "📌",
+        "type": 2,
+        "isSystem": false,
+        "canDelete": true
+      },
+      {
+        "name": "工作",
+        "color": "#2196F3",
+        "icon": "💼",
+        "type": 3,
+        "isSystem": false,
+        "canDelete": true
+      },
+      {
+        "name": "学习",
+        "color": "#9C27B0",
+        "icon": "📚",
+        "type": 4,
+        "isSystem": false,
+        "canDelete": true
+      }
+    ],
+    "windowConfig":
+    {
+      "positionX": 100,
+      "positionY": 100,
+      "width": 600,
+      "height": 400,
+      "isMaximized": false,
+      "backgroundPath": "./assets/images/note_data_bg.png"
+    },
+
+    "shortcuts":
+    {
+      "saveNote": "Ctrl+Enter",
+      "newNote": "Ctrl+N",
+      "deleteNote": "Delete",
+      "searchNotes": "Ctrl+F",
+      "toggleCategory": "Tab"
+    },
+
+    "preferences":
+    {
+      "language": "zh_CN",
+      "theme": "light",
+      "defaultCategoryType": -1,
+      "autoSaveEnabled": true,
+      "autoSaveIntervalSeconds": 30
+    }
+  }
+}

@@ -3,6 +3,11 @@
 ./qodana.yaml
 bin/
 build/
+win/
+qt6_win/
+vulkan_win_headers/
+toolchain_mingw.cmake
+*.log
 .qtcreator
 .idea/
 Autoqmldir

@@ -1,3 +1,5 @@
 add_subdirectory(Base)
+add_subdirectory(Domain)
+add_subdirectory(Infrastructure)
+add_subdirectory(Application)
 add_subdirectory(WidgetServices)
-add_subdirectory(Module)

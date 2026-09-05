@@ -19,6 +19,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+# 交叉编译时禁用 QML 导入扫描（避免尝试运行 Windows .exe）
+set(QT_NO_QML_IMPORT_SCAN TRUE)
+
 # 依赖查找
 find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2 Qml)
 
@@ -52,6 +55,7 @@ set_target_properties(DesktopPet PROPERTIES
         WIN32_EXECUTABLE TRUE
         MACOSX_BUNDLE TRUE
         OUTPUT_NAME ${PROJECT_NAME}
+        QT_QML_MODULE_NO_IMPORT_SCAN TRUE
 )
 
 # 链接库
