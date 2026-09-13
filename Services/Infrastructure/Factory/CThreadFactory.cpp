@@ -10,6 +10,7 @@
 #include "CLogThreadHandler.h"
 #include "CSystemThreadHandler.h"
 #include "CDynsDataSaveThreadHandler.h"
+#include "GlobalEnums.h"
 
 using namespace std;
 CThreadFactory::CThreadFactory()

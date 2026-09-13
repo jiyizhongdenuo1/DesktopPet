@@ -6,7 +6,9 @@
 # 创建静态库
 add_library(CMainWidgetServices STATIC
         CMainNoteListViewModel.cpp
-        CMainNoteListViewModel.h)
+        CMainNoteListViewModel.h
+        CSidebarModel.cpp
+        CSidebarModel.h)
 
 # 设置库的属性
 #set_target_properties(CMainWidgetServices PROPERTIES

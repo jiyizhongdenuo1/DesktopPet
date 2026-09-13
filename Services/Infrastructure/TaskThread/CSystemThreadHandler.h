@@ -9,7 +9,7 @@
 #pragma once
 #include "datatype.h"
 #include <functional>
-typedef std::function<INT32()> SYSTEM_THREAD_FUNC;
+using SYSTEM_THREAD_FUNC = std::function<INT32()>;
 
 #include "CThreadHandler.h"
 class DLL_EXPORT CSystemThreadHandler: public CThreadHandler

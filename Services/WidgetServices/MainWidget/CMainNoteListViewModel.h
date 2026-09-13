@@ -9,7 +9,6 @@
 #pragma once
 
 #include <QAbstractListModel>
-#include <QQueue>
 
 #include "datatype.h"
 #include "DDataMgrBase.h"

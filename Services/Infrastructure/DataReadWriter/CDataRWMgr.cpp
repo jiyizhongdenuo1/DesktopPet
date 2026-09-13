@@ -8,7 +8,7 @@
 
 // ========== 系统头文件 ==========
 #include <filesystem>
-
+#include <QDebug>
 // ========== 项目头文件 ==========
 #include "CDataRWMgr.h"
 #include "INoteDataBuffer.h"

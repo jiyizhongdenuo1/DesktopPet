@@ -18,6 +18,7 @@ target_link_libraries(TaskThread
         BaseServices
         CoreTypes
         Interfaces
+        ThreadBase
         DataReadWriterModule
         DataCache
         DataManager)

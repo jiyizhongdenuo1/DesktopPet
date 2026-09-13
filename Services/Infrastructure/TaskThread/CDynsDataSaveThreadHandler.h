@@ -12,7 +12,6 @@
 #include <unordered_map>
 #include <memory>
 #include "CThreadHandler.h"
-#include "datatype.h"
 
 typedef struct st_DataSaveEvent
 {

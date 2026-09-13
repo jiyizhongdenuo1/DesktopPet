@@ -23,6 +23,8 @@
 // 前向声明
 struct SCategoryInfo;
 
+using PARAM = long int;  // 回调参数类型定义
+
 /**
  * @class IConfigReader
  * @brief 配置读取接口（基础出站端口）
@@ -148,5 +150,13 @@ public:
      * @return      bool            true=删除成功，false=分类不存在
      *************************************************************/
     virtual bool DeleteCategory(const std::string &strName) = 0;
+
+    /** ***********************************************************
+     * @brief       通过PARAM获取UI内容配置（用于回调传递）
+     * @param[out]  param           输出PARAM参数（包含配置数据指针）
+     * @return      void
+     * @note        将UI内容配置转换为PARAM类型，便于回调函数使用
+     *************************************************************/
+    virtual void GetUIContentConfig(PARAM &param) = 0;
 
 };

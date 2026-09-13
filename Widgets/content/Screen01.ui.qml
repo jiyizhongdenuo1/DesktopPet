@@ -9,22 +9,27 @@ import QtQuick 6.5
 import QtQuick.Controls 6.5
 import QtQuick3D 6.5
 
-Rectangle {
+Rectangle
+{
     width: Constants.width
     height: Constants.height
 
     color: Constants.backgroundColor
 
-    Item {
+    Item
+    {
         id: __materialLibrary__
-        DefaultMaterial {
+
+        DefaultMaterial
+        {
             id: defaultMaterial
             objectName: "Default Material"
             diffuseColor: "#4aee45"
         }
     }
 
-    Text {
+    Text
+    {
         text: qsTr("Hello DesktoppetUI")
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter

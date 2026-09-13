@@ -1,22 +1,18 @@
 /*
  * @file: CConfigManager.cpp
  * @brief: 配置管理应用服务实现
- * @detail: 
- *   持有 IConfigUpdater 和 IConfigEditor 基类接口（依赖倒置原则）
- *   通过基类接口访问配置，不依赖具体实现类
- *   使用 DConfig.h 中定义的配置常量，避免硬编码字符串
- * 
- * 使用方式：
- *   1. 程序启动时调用 Initialize() 注入配置实例
- *   2. 之后通过 GetInstance() 或 g_ConfigManager 宏使用
+ * @detail:
+ *
  */
 
 #include "CConfigManager.h"
 #include "IConfigBase.h"
 #include "DConfig.h"
+#include "SCategoryInfo.h"
 
 #include <stdexcept>
 #include <map>
+#include <QDebug>
 
 using namespace std;
 using namespace NConfigSection;
@@ -65,14 +61,14 @@ CConfigManager::~CConfigManager() = default;
 
 // ========== 系统配置实现（通过 IConfigUpdater 基类接口）==========
 
-string CConfigManager::GetLanguage()
+string CConfigManager::GetLanguage() const
 {
     string rawValue;
     m_pCommonConfig->GetValue(SYSTEM_SECTION, COMMON_CONFIG_LANGUAGE, rawValue);
     return TranslateLanguageCode(rawValue);
 }
 
-string CConfigManager::GetTheme()
+string CConfigManager::GetTheme() const
 {
     string value;
     m_pCommonConfig->GetValue(UI_SECTION, COMMON_CONFIG_THEME, value);
@@ -81,12 +77,15 @@ string CConfigManager::GetTheme()
 
 void CConfigManager::SetTheme(const string& strTheme)
 {
-    ValidateTheme(strTheme);
-    m_pCommonConfig->SetValue(UI_SECTION, COMMON_CONFIG_THEME, strTheme);
-    NotifyThemeChanged(strTheme);
+    if (!IsValidTheme(strTheme))
+    {
+        throw invalid_argument("Invalid theme: " + strTheme + ". Must be 'light' or 'dark'");
+    }
+
+    SetSystemConfig(UI_SECTION, COMMON_CONFIG_THEME, strTheme);
 }
 
-bool CConfigManager::IsDebugMode()
+bool CConfigManager::IsDebugMode() const
 {
     string logLevel, env;
     
@@ -97,14 +96,14 @@ bool CConfigManager::IsDebugMode()
            && (env == "development");
 }
 
-string CConfigManager::GetAppVersion()
+string CConfigManager::GetAppVersion() const
 {
     string version;
     m_pCommonConfig->GetValue(SYSTEM_SECTION, COMMON_CONFIG_VERSION, version);
     return version.empty() ? "1.0.0" : version;
 }
 
-int CConfigManager::GetMaxRetryCount()
+int CConfigManager::GetMaxRetryCount() const
 {
     string value;
     m_pCommonConfig->GetValue(BUSINESS_SECTION, COMMON_CONFIG_MAX_RETRY_COUNT, value);
@@ -119,7 +118,7 @@ int CConfigManager::GetMaxRetryCount()
     }
 }
 
-int CConfigManager::GetTimeoutSeconds()
+int CConfigManager::GetTimeoutSeconds() const
 {
     string value;
     m_pCommonConfig->GetValue(BUSINESS_SECTION, COMMON_CONFIG_TIMEOUT_SECONDS, value);
@@ -134,7 +133,7 @@ int CConfigManager::GetTimeoutSeconds()
     }
 }
 
-string CConfigManager::GetDataPath()
+string CConfigManager::GetDataPath() const
 {
     string strDataPath;
     m_pCommonConfig->GetValue(DATA_SECTION, COMMON_CONFIG_DATA_PATH, strDataPath);
@@ -154,7 +153,7 @@ string CConfigManager::GetDataPath()
 
 // ========== 用户配置实现（通过 IConfigEditor 基类接口）==========
 
-void CConfigManager::GetWindowPosition(int& nX, int& nY)
+void CConfigManager::GetWindowPosition(int& nX, int& nY) const
 {
     string strX, strY;
     
@@ -171,12 +170,16 @@ void CConfigManager::SetWindowPosition(int nX, int nY)
     {
         throw out_of_range("Window position cannot be negative");
     }
-    
-    m_pUserConfig->SetValue(UICONTENT_SECTION, USER_CONFIG_WINDOW_POSITION_X, to_string(nX));
-    m_pUserConfig->SetValue(UICONTENT_SECTION, USER_CONFIG_WINDOW_POSITION_Y, to_string(nY));
+
+    SetUserConfig(UICONTENT_SECTION, USER_CONFIG_WINDOW_POSITION_X, to_string(nX));
+    SetUserConfig(UICONTENT_SECTION, USER_CONFIG_WINDOW_POSITION_Y, to_string(nY));
+
+    string strPos = to_string(nX) + "," + to_string(nY);
+    NotifyConfigChanged(E_BCFUN_TYPE_WINDOW_POS,
+                        reinterpret_cast<PARAM>(strPos.c_str()));
 }
 
-string CConfigManager::GetBackgroundPath()
+string CConfigManager::GetBackgroundPath() const
 {
     string path;
     m_pUserConfig->GetValue(UICONTENT_SECTION, USER_CONFIG_WINDOW_BACKGROUND_PATH, path);
@@ -189,7 +192,7 @@ string CConfigManager::GetBackgroundPath()
     return path;
 }
 
-vector<SCategoryInfo> CConfigManager::GetCategories()
+vector<SCategoryInfo> CConfigManager::GetCategories() const
 {
     vector<SCategoryInfo> categories;
     m_pUserConfig->GetCategories(categories);
@@ -207,8 +210,19 @@ bool CConfigManager::AddCategory(const SCategoryInfo& info)
             return false;
         }
     }
-    
-    return m_pUserConfig->AddCategory(info);
+
+    bool b_IsSuccess = m_pUserConfig->AddCategory(info);
+
+    E_BCFUN_TYPE eType = ShouldNotifyCallback(UICONTENT_SECTION);
+
+    if (eType != E_BCFUN_TYPE_MAX && b_IsSuccess)
+    {
+        PARAM param = 0;
+        m_pUserConfig->GetUIContentConfig(param);
+        NotifyConfigChanged(eType, param);
+    }
+
+    return b_IsSuccess;
 }
 
 bool CConfigManager::DeleteCategory(const string& strName)
@@ -226,7 +240,7 @@ bool CConfigManager::DeleteCategory(const string& strName)
     return m_pUserConfig->DeleteCategory(strName);
 }
 
-string CConfigManager::GetShortcut(const string& strAction)
+string CConfigManager::GetShortcut(const string& strAction) const
 {
     string shortcut;
     string key = string(USER_CONFIG_SHORTCUTS_PREFIX) + strAction;
@@ -237,12 +251,12 @@ string CConfigManager::GetShortcut(const string& strAction)
 void CConfigManager::SetShortcut(const string& strAction, const string& strKey)
 {
     string fullKey = string(USER_CONFIG_SHORTCUTS_PREFIX) + strAction;
-    m_pUserConfig->SetValue(UICONTENT_SECTION, fullKey, strKey);
+    SetUserConfig(UICONTENT_SECTION, fullKey, strKey);
 }
 
 // ========== 偏好设置 ==========
 
-bool CConfigManager::IsAutoSaveEnabled()
+bool CConfigManager::IsAutoSaveEnabled() const
 {
     string value;
     m_pUserConfig->GetValue(UICONTENT_SECTION, USER_CONFIG_PREFERENCES_AUTO_SAVE_ENABLED, value);
@@ -250,7 +264,7 @@ bool CConfigManager::IsAutoSaveEnabled()
     return value == "true" || value == "1";
 }
 
-int CConfigManager::GetAutoSaveInterval()
+int CConfigManager::GetAutoSaveInterval() const
 {
     string value;
     m_pUserConfig->GetValue(UICONTENT_SECTION, USER_CONFIG_PREFERENCES_AUTO_SAVE_INTERVAL_SECONDS, value);
@@ -265,9 +279,27 @@ int CConfigManager::GetAutoSaveInterval()
     }
 }
 
-// ========== 私有辅助方法 ==========
+bool CConfigManager::RegisterCallback(E_BCFUN_TYPE eType, Func_ConfigChange func)
+{
+    if (eType >= E_BCFUN_TYPE_THEME && eType < E_BCFUN_TYPE_MAX)
+    {
+        m_puomapFunc[eType] = func;
+        return true;
+    }
+    return false;
+}
 
-string CConfigManager::TranslateLanguageCode(const string& strRawCode)
+bool CConfigManager::UnregisterCallback(E_BCFUN_TYPE eType)
+{
+    if (eType >= E_BCFUN_TYPE_THEME && eType < E_BCFUN_TYPE_MAX)
+    {
+        m_puomapFunc.erase(eType);
+        return true;
+    }
+    return false;
+}
+
+string CConfigManager::TranslateLanguageCode(const string& strRawCode) const
 {
     static map<string, string> translationMap = {
         {"zh_CN", "简体中文"},
@@ -286,16 +318,109 @@ string CConfigManager::TranslateLanguageCode(const string& strRawCode)
     return strRawCode;
 }
 
-void CConfigManager::ValidateTheme(const string& strTheme)
+// ========== 私有方法实现 ==========
+
+bool CConfigManager::IsValidTheme(const string& strTheme) const
 {
-    if (strTheme != "light" && strTheme != "dark")
+    return strTheme == "light" || strTheme == "dark";
+}
+
+CConfigManager::E_BCFUN_TYPE CConfigManager::ShouldNotifyCallback(const string& strSection,
+                                                   const string& strKey) const
+{
+    if (strSection == UI_SECTION && strKey == COMMON_CONFIG_THEME)
     {
-        throw invalid_argument("Invalid theme: " + strTheme + ". Must be 'light' or 'dark'");
+        return E_BCFUN_TYPE_THEME;
+    }
+    if (strSection == UICONTENT_SECTION )
+    {
+        return E_BCFUN_TYPE_UICONFIG;
+    }
+
+    if (strSection == UICONTENT_SECTION &&
+        (strKey == USER_CONFIG_WINDOW_POSITION_X ||
+         strKey == USER_CONFIG_WINDOW_POSITION_Y))
+    {
+        return E_BCFUN_TYPE_WINDOW_POS;
+    }
+
+    if (strSection == UICONTENT_SECTION &&
+        strKey.find(USER_CONFIG_SHORTCUTS_PREFIX) == 0)
+    {
+        return E_BCFUN_TYPE_SHORTCUT;
+    }
+
+    return E_BCFUN_TYPE_MAX;  // 不需要通知
+}
+
+void CConfigManager::NotifyConfigChanged(E_BCFUN_TYPE eType, PARAM param1, PARAM param2)
+{
+    auto it = m_puomapFunc.find(eType);
+
+    if (it != m_puomapFunc.end() && it->second)
+    {
+        it->second(param1, param2);
     }
 }
 
-void CConfigManager::NotifyThemeChanged(const string& strTheme)
+// ========== 统一配置设置接口实现 ==========
+
+bool CConfigManager::SetSystemConfig(const string& strSection,
+                                     const string& strKey,
+                                     const string& strValue)
 {
-    // TODO: 可扩展为观察者模式，通知UI层刷新主题
-     
+    if (strSection.empty() || strKey.empty())
+    {
+        return false;
+    }
+
+    try
+    {
+        m_pCommonConfig->SetValue(strSection, strKey, strValue);
+
+        // 内部自动判断是否需要回调
+        E_BCFUN_TYPE eType = ShouldNotifyCallback(strSection, strKey);
+
+        if (eType != E_BCFUN_TYPE_MAX)
+        {
+            NotifyConfigChanged(eType, reinterpret_cast<PARAM>(strValue.c_str()));
+        }
+
+        return true;
+    }
+    catch (const exception& e)
+    {
+        qDebug() << "SetSystemConfig failed:" << e.what();
+        return false;
+    }
+}
+
+bool CConfigManager::SetUserConfig(const string& strSection,
+                                   const string& strKey,
+                                   const string& strValue)
+{
+    if (strSection.empty() || strKey.empty())
+    {
+        return false;
+    }
+
+    try
+    {
+        m_pUserConfig->SetValue(strSection, strKey, strValue);
+
+        // 内部自动判断是否需要回调
+        E_BCFUN_TYPE eType = ShouldNotifyCallback(strSection, strKey);
+
+        if (eType != E_BCFUN_TYPE_MAX)
+        {
+            NotifyConfigChanged(eType, reinterpret_cast<PARAM>(strValue.c_str()));
+        }
+
+        return true;
+    }
+    catch (const exception& e)
+    {
+        qDebug() << "SetUserConfig failed:" << e.what();
+        return false;
+    }
 }

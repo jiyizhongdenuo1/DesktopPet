@@ -3,52 +3,58 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts
 import content 1.0
 
-Item {
+Item
+{
     id: mainListView
-    width: 640
     height: 1020
     property int currentClickIndex: -1
     property bool isAddNote: false
-    function addNote() {
+
+    function addNote()
+    {
         if (noteList.footerItem &&
             noteList.footerItem.newNoteInput &&
-            noteList.footerItem.newNoteInput.text.length > 0) {
-
+            noteList.footerItem.newNoteInput.text.length > 0)
+        {
             noteModel.AddNote(noteList.footerItem.newNoteInput.text, new Date())
             noteList.footerItem.newNoteInput.text = ""
             addNoteTime.stop()
         }
     }
 
-    function confirmEdit() {
+    function confirmEdit()
+    {
         if (currentClickIndex >= 0)
         {
             var editDelegate = noteList.itemAtIndex(currentClickIndex)
             if (!editDelegate || !editDelegate.editTextField)
             {
-                currentClickIndex = -1;
-                return ;
+                currentClickIndex = -1
+                return
             }
-            
-            var newNoteContent = editDelegate.editTextField.text;
-            var perNoteContent = editDelegate.perNoteContent;
+
+            var newNoteContent = editDelegate.editTextField.text
+            var perNoteContent = editDelegate.perNoteContent
             if (newNoteContent.length > 0 && newNoteContent !== perNoteContent)
             {
-                noteModel.UpdateNoteContent(currentClickIndex, newNoteContent);
+                noteModel.UpdateNoteContent(currentClickIndex, newNoteContent)
             }
-            currentClickIndex = -1;
+            currentClickIndex = -1
         }
     }
 
-    function  cancelEdit()
+    function cancelEdit()
     {
-        currentClickIndex = -1;
+        currentClickIndex = -1
     }
-    Column {
+
+    Column
+    {
         anchors.fill: parent
         spacing: 5
 
-        ListView {
+        ListView
+        {
             id: noteList
             width: parent.width
             height: parent.height - 50
@@ -62,29 +68,26 @@ Item {
                 color: mouseArea.containsMouse ? "#f0f0f0" : "#80ffffff"
                 border.color: (currentClickIndex == index) ? "#4a90d9" : "#eee"
                 border.width: (currentClickIndex == index) ? 2 : 1
-                /** 鼠标事件捕获区 - 必须放在最前面才能接收点击 */
+
                 MouseArea
                 {
                     id: mouseArea
                     anchors.fill: parent
                     hoverEnabled: true
+
                     onClicked:
                     {
                         if (currentClickIndex != index)
                         {
-                            /** 先保存当前正在编辑的行（如果有修改的话） */
                             if (currentClickIndex >= 0)
                             {
                                 confirmEdit()
                             }
-
-                            /** 再切换到新行开始编辑 */
                             currentClickIndex = index
                             perNoteContent = noteContent
                         }
                         else
                         {
-                            /** 已选中当前行，确保焦点在输入框 */
                             if (editTextField)
                             {
                                 editTextField.forceActiveFocus()
@@ -102,46 +105,52 @@ Item {
                     }
                 }
 
-                /** 水平布局：左侧显示时间，右侧显示便签内容 */
-                RowLayout {
+                RowLayout
+                {
                     anchors.fill: parent
                     anchors.margins: 10
                     visible: currentClickIndex != index
 
-                    Text {
+                    Text
+                    {
                         text: writeTime
                         font.pixelSize: 12
                         color: "gray"
                         Layout.preferredWidth: 120
                     }
 
-                    Text {
+                    Text
+                    {
                         text: noteContent
                         font.pixelSize: 16
                         elide: Text.ElideRight
                         Layout.fillWidth: true
                     }
                 }
-                RowLayout {
+
+                RowLayout
+                {
                     anchors.fill: parent
                     anchors.margins: 10
                     visible: currentClickIndex == index
-                    Text {
+
+                    Text
+                    {
                         text: writeTime
                         font.pixelSize: 12
                         color: "gray"
                         Layout.preferredWidth: 120
                     }
+
                     TextField
                     {
                         id: editTextField
                         font.pixelSize: 16
                         Layout.fillWidth: true
-
                         focus: true
 
-                        /** 自定义背景：透明无边框，只显示光标 */
-                        background: Rectangle {
+                        background: Rectangle
+                        {
                             color: "transparent"
                             border.width: 0
                         }
@@ -150,30 +159,30 @@ Item {
                         {
                             if (event.modifiers & Qt.ControlModifier)
                             {
-                                event.accepted = false;
+                                event.accepted = false
                             }
                             else
                             {
-                                confirmEdit();
+                                confirmEdit()
                             }
                             console.log("点击列表区域")
-
                         }
+
                         Keys.onReturnPressed:function(event)
                         {
                             if (event.modifiers & Qt.ControlModifier)
                             {
-                                event.accepted = false;
+                                event.accepted = false
                             }
                             else
                             {
-                                confirmEdit();
+                                confirmEdit()
                             }
                         }
 
                         Keys.onEscapePressed:function()
                         {
-                            cancelEdit();
+                            cancelEdit()
                         }
 
                         Component.onCompleted:
@@ -185,24 +194,28 @@ Item {
                 }
             }
 
-            footer:Rectangle{
+            footer: Rectangle
+            {
                 id: footerItem
-                width:parent.width
+                width: parent.width
                 height: 50
                 color: "#80f8f8f8"
                 border.color: "#eee"
 
-                RowLayout{
+                RowLayout
+                {
                     anchors.fill: parent
-                    TextField{
-                        id:newNoteInput
-                        // anchors.fill: parent
+
+                    TextField
+                    {
+                        id: newNoteInput
                         color: "#000000"
                         placeholderText: "Add a new note..."
                         Layout.fillWidth: true
                         font.pixelSize: 16
 
-                        background: Rectangle {
+                        background: Rectangle
+                        {
                             color: "transparent"
                             border.width: 0
                         }
@@ -211,9 +224,11 @@ Item {
                         {
                             addNote()
                         }
+
                         onTextChanged:
                         {
-                            if (newNoteInput.text.length > 0) {
+                            if (newNoteInput.text.length > 0)
+                            {
                                 addNoteTime.restart()
                             }
                             else
@@ -221,23 +236,23 @@ Item {
                                 addNoteTime.stop()
                             }
                         }
+
                         onFocusChanged:
                         {
                             if (!newNoteInput.focus)
                             {
                                 addNote()
                             }
-                            else
-                            {
-                            }
                         }
                     }
                 }
             }
-            Timer {
+
+            Timer
+            {
                 id: addNoteTime
-                interval:2000
-                repeat:false
+                interval: 2000
+                repeat: false
 
                 onTriggered:
                 {
@@ -246,16 +261,19 @@ Item {
             }
         }
 
-        Rectangle {
+        Rectangle
+        {
             width: parent.width
             height: 50
             color: "#80f8f8f8"
 
-            Button {
+            Button
+            {
                 text: "Add Note"
                 anchors.centerIn: parent
-                onClicked: {
-                    /** 先保存当前正在编辑的行（如果有修改的话） */
+
+                onClicked:
+                {
                     if (currentClickIndex >= 0)
                     {
                         confirmEdit()
@@ -270,23 +288,28 @@ Item {
         }
     }
 
-    PopInputNoteDia {
+    PopInputNoteDia
+    {
         id: inputDialog
         width: 400
         height: 200
         anchors.centerIn: parent
 
-        onRejected: {
+        onRejected:
+        {
             currentClickIndex = -1
         }
 
-        onAccepted: {
-            if (inputDialog.inputText.length > 0) {
-                if (currentClickIndex === -1) {
-                    // 添加新笔记
+        onAccepted:
+        {
+            if (inputDialog.inputText.length > 0)
+            {
+                if (currentClickIndex === -1)
+                {
                     noteModel.AddNote(inputDialog.inputText, new Date())
-                } else {
-                    // 编辑现有笔记
+                }
+                else
+                {
                     noteModel.UpdateNoteContent(currentClickIndex, inputDialog.inputText)
                 }
             }
@@ -294,17 +317,16 @@ Item {
         }
     }
 
-    // Component.onDestruction: {
-    //     addNote()
-    // }
-    /** 点击空白区域自动保存编辑内容 */
-    MouseArea {
+    MouseArea
+    {
         anchors.fill: parent
-        z: -1  // 放在最底层
+        z: -1
 
-        onClicked: {
-            if (currentClickIndex >= 0) {
-                confirmEdit()           // ← 自动保存
+        onClicked:
+        {
+            if (currentClickIndex >= 0)
+            {
+                confirmEdit()
             }
         }
     }

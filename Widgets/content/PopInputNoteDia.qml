@@ -3,7 +3,8 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 2.15
 
 
-Dialog {
+Dialog
+{
     id: inputDialog
     title: "输入内容"
     modal: true
@@ -31,7 +32,10 @@ Dialog {
         spacing: 10
         width: inputDialog.availableWidth
 
-        Text { text: "请输入便签内容：" }
+        Text
+        {
+            text: "请输入便签内容："
+        }
 
         TextField
         {

@@ -1,6 +1,5 @@
 #pragma once
 #include <cstring>
-#include <ctime>
 #include "datatype.h"
 
 namespace NoteSpace

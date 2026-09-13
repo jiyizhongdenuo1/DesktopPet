@@ -15,6 +15,7 @@
 class QGuiApplication;
 class QQmlApplicationEngine;
 class CMainNoteListViewModel;
+class CSidebarModel;
 class CNoteDataService;
 class CDataRWMgr;
 class CNoteDataCache;
@@ -204,5 +205,6 @@ private:
     std::unique_ptr<QGuiApplication>        m_pApp;
     std::unique_ptr<QQmlApplicationEngine>  m_pEngine;
     std::unique_ptr<CMainNoteListViewModel> m_pNoteModel;
+    std::unique_ptr<CSidebarModel>          m_pSidebarModel; ///< 侧边栏分类模型
 };
 #define  g_CAppBootstrapper CAppBootstrapper::Instance()

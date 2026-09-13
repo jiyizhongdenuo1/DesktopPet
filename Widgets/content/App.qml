@@ -4,16 +4,16 @@
 import QtQuick 6.5
 import DesktoppetUI
 
-Window {
+Window
+{
     width: mainScreen.width
     height: mainScreen.height
 
     visible: true
     title: "DesktoppetUI"
 
-    Screen01 {
+    Screen01
+    {
         id: mainScreen
     }
-
 }
-

@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include <functional>
 #include <DServiceBase.h>
 namespace DDataCache
 {

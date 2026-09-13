@@ -17,6 +17,8 @@
 #include "CAppBootstrapper.h"
 #include "CAppSystem.h"
 #include "CMainNoteListViewModel.h"
+#include "CSidebarModel.h"
+#include "SCategoryInfo.h"
 #include "CThreadFactory.h"
 #include "CNoteDataService.h"
 #include "CNoteDataCollect.h"
@@ -42,6 +44,7 @@ CAppBootstrapper::CAppBootstrapper()
     , m_pApp(nullptr)
     , m_pEngine(nullptr)
     , m_pNoteModel(nullptr)
+    , m_pSidebarModel(nullptr)
 {
 }
 
@@ -99,7 +102,6 @@ void CAppBootstrapper::Shutdown()
 
     m_services.noteCache.reset();
     m_services.noteService.reset();
-    // m_services.dataSaver.reset();
 
     m_bInitialized = false;
     qDebug() << "[" << m_appName << "] 已安全退出。" ;
@@ -148,7 +150,7 @@ void CAppBootstrapper::RegisterServices()
         cout << "✓ CDataRWMgr 创建完成（已注入 DataSave 实例）" << endl;
 
         g_ServiceLocator.RegisterNoteCache(noteCache);
-        g_ServiceLocator.RegisterNoteCollect(noteCollect);  // ← 注册到全局定位器
+        g_ServiceLocator.RegisterNoteCollect(noteCollect);
         g_ServiceLocator.RegisterNoteService(m_services.noteService);
         cout << "✓ 核心服务已注册到 ServiceLocator（全局可访问）" << endl;
 
@@ -178,8 +180,45 @@ void CAppBootstrapper::InitializeQmlEngine()
     m_pEngine = make_unique<QQmlApplicationEngine>();
 
     m_pNoteModel = make_unique<CMainNoteListViewModel>();
-
     m_pEngine->rootContext()->setContextProperty("noteModel", m_pNoteModel.get());
+
+    m_pSidebarModel = make_unique<CSidebarModel>();
+    m_pEngine->rootContext()->setContextProperty("sidebarModel", m_pSidebarModel.get());
+
+    if (m_pSidebarModel)
+    {
+        g_ConfigManager->RegisterCallback(
+            CConfigManager::E_BCFUN_TYPE_UICONFIG,
+            std::bind(
+                static_cast<bool(CSidebarModel::*)(PARAM, PARAM)>(&CSidebarModel::UpdateSidebarItems),
+                m_pSidebarModel.get(),
+                std::placeholders::_1,
+                std::placeholders::_2
+            )
+        );
+
+        vector<SCategoryInfo> categories = g_ConfigManager->GetCategories();
+
+        if (!categories.empty())
+        {
+            static vector<SCategoryInfo> staticCategories = categories;
+            PARAM param = reinterpret_cast<PARAM>(&staticCategories);
+
+            m_pSidebarModel->UpdateSidebarItems(param, 0);
+            qDebug() << "✓ 侧边栏初始加载完成，分类数:" << m_pSidebarModel->rowCount();
+
+            for (size_t i = 0; i < categories.size(); ++i)
+            {
+                qDebug() << "  [" << i << "]" << categories[i].strName
+                         << categories[i].strColor;
+            }
+        }
+        else
+        {
+            qWarning() << "⚠ 侧边栏初始加载失败：无分类数据";
+            qDebug() << "请检查 UserConfig.json 文件是否存在且格式正确";
+        }
+    }
 
     QObject::connect(m_pEngine.get(), &QQmlApplicationEngine::objectCreationFailed,
                      m_pApp.get(), []() { QCoreApplication::exit(-1); },

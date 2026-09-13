@@ -9,7 +9,8 @@ target_link_libraries(Factory
         TaskThread
         BaseServices
         CoreTypes
-        Interfaces)
+        Interfaces
+        ThreadBase)
 
 target_include_directories(Factory PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>

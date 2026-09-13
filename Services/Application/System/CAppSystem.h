@@ -1,15 +1,14 @@
 /*
  * @file: CAppSystem.h
- * @brief: 
+ * @brief: 应用系统管理类（线程管理、任务调度）
  * @author: nuo
  * @date: 2026/6/4
- * @Detail:
+ * @update: 2026/9/4 - 移除 QObject 依赖，优化为纯 C++ 类
  */
 
 #pragma once
 
-
-#include <QObject>
+#include <memory>
 
 #include "datatype.h"
 #include "GlobalEnums.h"
@@ -17,12 +16,11 @@
 class CThread;
 class CThreadHandler;
 class CAppSystemPrivate;
-class CAppSystem: public QObject
+
+class CAppSystem
 {
-    Q_OBJECT
-    Q_DECLARE_PRIVATE(CAppSystem)
 public:
-    explicit CAppSystem(QObject *parent = nullptr);
+    explicit CAppSystem();
     ~CAppSystem();
 
     static CAppSystem *GetInstance();

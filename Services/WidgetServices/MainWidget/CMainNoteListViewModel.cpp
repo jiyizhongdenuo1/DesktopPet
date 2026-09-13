@@ -92,7 +92,6 @@ void CMainNoteListViewModel::UpdateNoteContent(int index, const QString &newCont
     {
         m_vecNote[index].m_strContent = newContent.toStdString();
 
-        // [关键] 通知 QML 这一行的内容变了，界面会立即刷新
         QModelIndex qIndex = createIndex(index, 0);
         emit dataChanged(qIndex, qIndex, {RoleNoteContent});
     }
@@ -124,6 +123,7 @@ void CMainNoteListViewModel::PutArrNoteData(std::shared_ptr<std::array<ST_NOTE_D
 
     endResetModel();
 }
+
 
 void CMainNoteListViewModel::Init()
 {

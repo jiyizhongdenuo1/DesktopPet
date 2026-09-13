@@ -11,7 +11,6 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
-#include "datatype.h"
 #include "CThreadHandler.h"
 
 constexpr std::string MSG_WRITE_LOG = "write_log";

@@ -8,8 +8,6 @@
 
 #pragma once
 
-#include "DDataMgrBase.h"
-#include "datatype.h"
 #include "CDataCollectBase.h"
 #include "INoteDataBuffer.h"
 

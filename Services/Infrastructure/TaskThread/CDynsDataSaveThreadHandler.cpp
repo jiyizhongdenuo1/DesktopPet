@@ -13,11 +13,13 @@
 #include <QMutex>
 #include "CDataRWMgr.h"
 #include "CThread.h"
+
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <unistd.h>
 #endif
+
 #include "CServiceLocator.h"
 #include "INoteDataBuffer.h"
 #include "DSaveDefine.h"
@@ -25,6 +27,7 @@
 #include "CNoteDataService.h"
  #include "DDataCache.h"
 #include "DThread.h"
+#include "datatype.h"
 
 using namespace std;
 

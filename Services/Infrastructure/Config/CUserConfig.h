@@ -10,8 +10,6 @@
 
 #include  <memory>
 #include <vector>
-#include "DConfig.h"
-#include "SCategoryInfo.h"
 #include "IConfigBase.h"
 
 class CUserConfigPrivate;
@@ -125,6 +123,15 @@ public:
      * @see         IConfigEditor::DeleteCategory
      *************************************************************/
     bool DeleteCategory(const std::string &strName) override;
+
+    /** ***********************************************************
+     * @brief       通过PARAM获取UI内容配置（用于回调传递）
+     * @param[out]  param           输出PARAM参数（包含配置数据指针）
+     * @return      void
+     * @note        将UI内容配置转换为PARAM类型，便于回调函数使用
+     * @see         IConfigEditor::GetUIContentConfig
+     *************************************************************/
+    void GetUIContentConfig(PARAM &param) override;
 
     // ========== 便利方法（保留原有接口）==========
     

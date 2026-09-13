@@ -44,9 +44,8 @@ private:
     unique_ptr<CAppSystem>                      q_ptr;
 };
 
-CAppSystem::CAppSystem(QObject *parent)
-    : QObject(parent)
-    , d_ptr(make_unique<CAppSystemPrivate>())
+CAppSystem::CAppSystem()
+    : d_ptr(make_unique<CAppSystemPrivate>())
 {
     IniAppFrame();
 }

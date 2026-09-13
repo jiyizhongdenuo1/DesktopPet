@@ -28,33 +28,33 @@ struct SCategoryInfo
 
     static void FromJson(const QJsonObject& obj, SCategoryInfo& objInfo)
     {
-        objInfo.strName = obj["strName"].toString();
-        objInfo.strColor = obj["strColor"].toString();
-        objInfo.strIcon = obj["strIcon"].toString();
-        objInfo.s32Type = obj["s32Type"].toInt();
-        objInfo.bIsSystem = obj["bIsSystem"].toBool();
-        objInfo.bCanDelete = obj["bCanDelete"].toBool();
+        objInfo.strName = obj["name"].toString();
+        objInfo.strColor = obj["color"].toString();
+        objInfo.strIcon = obj["icon"].toString();
+        objInfo.s32Type = obj["type"].toInt(-1);
+        objInfo.bIsSystem = obj["isSystem"].toBool();
+        objInfo.bCanDelete = obj["canDelete"].toBool();
     }
 
     static void ToJson(QJsonObject& obj, const SCategoryInfo& objInfo)
     {
-        obj["strName"] = objInfo.strName;
-        obj["strColor"] = objInfo.strColor;
-        obj["strIcon"] = objInfo.strIcon;
-        obj["s32Type"] = objInfo.s32Type;
-        obj["bIsSystem"] = objInfo.bIsSystem;
-        obj["bCanDelete"] = objInfo.bCanDelete;
+        obj["name"] = objInfo.strName;
+        obj["color"] = objInfo.strColor;
+        obj["icon"] = objInfo.strIcon;
+        obj["type"] = objInfo.s32Type;
+        obj["isSystem"] = objInfo.bIsSystem;
+        obj["canDelete"] = objInfo.bCanDelete;
     }
 
     QJsonObject ToJson() const
     {
         QJsonObject obj;
-        obj["strName"] = strName;
-        obj["strColor"] = strColor;
-        obj["strIcon"] = strIcon;
-        obj["s32Type"] = s32Type;
-        obj["bIsSystem"] = bIsSystem;
-        obj["bCanDelete"] = bCanDelete;
+        obj["name"] = strName;
+        obj["color"] = strColor;
+        obj["icon"] = strIcon;
+        obj["type"] = s32Type;
+        obj["isSystem"] = bIsSystem;
+        obj["canDelete"] = bCanDelete;
         return obj;
     }
 };

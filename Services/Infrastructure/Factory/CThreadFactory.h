@@ -10,7 +10,6 @@
 
 #include "IFactory.h"
 #include "CThread.h"
-#include "GlobalEnums.h"
 
 class CThreadHandler;
 
@@ -38,7 +37,7 @@ public:
      * @param s32Interval 唤醒间隔（毫秒）
      * @return 返回创建的线程对象指针
      */
-    unique_ptr<CThread> Create(const QString &strName, std::shared_ptr<CThreadHandler> pHandle, INT32 s32Interval = 1000);
+    std::unique_ptr<CThread> Create(const QString &strName, std::shared_ptr<CThreadHandler> pHandle, INT32 s32Interval = 1000);
 
     /**
      * @brief 创建线程对象（无参版本，返回空指针）
@@ -76,7 +75,7 @@ private:
     void InitThreadHanders();
     void ThreadModule();
 private:
-    std::vector<shared_ptr<CThread>>                   m_vecpThread;
-    std::vector<shared_ptr<CThreadHandler>>            m_vecpThreadHanders;
+    std::vector<std::shared_ptr<CThread>>                   m_vecpThread;
+    std::vector<std::shared_ptr<CThreadHandler>>            m_vecpThreadHanders;
 
 };

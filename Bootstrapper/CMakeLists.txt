@@ -9,10 +9,12 @@ target_link_libraries(Bootstrapper
         CAppSystem
         CMainWidgetServices
         Factory
+        ThreadBase
         DataReadWriterModule
         DataManager
         DataCache
         ConfigManager
+        Config
 )
 
 target_include_directories(Bootstrapper PUBLIC

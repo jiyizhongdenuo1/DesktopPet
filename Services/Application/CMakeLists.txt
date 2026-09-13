@@ -10,6 +10,8 @@ target_include_directories(ConfigManager PUBLIC
 
 target_link_libraries(ConfigManager PUBLIC
     CoreTypes
+    BaseServices
+    PRIVATE
     Interfaces
     Config
 )

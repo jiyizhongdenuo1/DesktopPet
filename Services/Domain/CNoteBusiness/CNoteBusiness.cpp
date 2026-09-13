@@ -6,7 +6,7 @@
  * @Detail:
  */
 
-#include "../Config/CNoteBusiness.h"
+#include "CNoteBusiness.h"
 
 CNoteBusiness::CNoteBusiness()
 {

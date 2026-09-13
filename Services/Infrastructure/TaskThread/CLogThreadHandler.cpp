@@ -19,6 +19,8 @@
 #include <queue>
 
 #include "CThread.h"
+#include "datatype.h"
+
 #define DATA_SAVE_PATh "./SaveFile"
 #define SAVE_FILE_NAME "LogFile.json"
 

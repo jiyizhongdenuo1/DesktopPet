@@ -1,12 +1,11 @@
 # =============================================================================
 # Base Services Module
 # =============================================================================
-# 提供基础线程服务（依赖 CoreTypes 基础类型）
+# 提供基础服务（全局枚举、回调定义等）
 
 add_library(BaseServices SHARED
-        CThread.cpp
-        CThread.h
         GlobalEnums.h
+        DBackFun.h
 )
 
 target_compile_definitions(BaseServices
@@ -23,4 +22,5 @@ target_link_libraries(BaseServices
         PRIVATE
         CoreTypes
         Interfaces
+        ThreadBase
 )

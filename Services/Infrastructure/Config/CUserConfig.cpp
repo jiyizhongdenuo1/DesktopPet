@@ -12,7 +12,6 @@
 #include <mutex>
 #include <shared_mutex>
 #include <QFile>
-#include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonArray>
 
@@ -20,6 +19,7 @@
 #include "CUserConfig.h"
 #include "SCategoryInfo.h"
 #include "CommonDefine.h"
+#include "DConfig.h"
 
 using namespace std;
 using namespace CPath;
@@ -316,8 +316,8 @@ bool CUserConfig::AddCategory(const SCategoryInfo &categoryInfo)
 bool CUserConfig::DeleteCategory(const string& strName)
 {
     std::unique_lock<std::shared_mutex> lock(s_userConfigMutex);
-    
-    for (auto it = d_ptr->m_vecCategoryInfo.begin(); 
+
+    for (auto it = d_ptr->m_vecCategoryInfo.begin();
          it != d_ptr->m_vecCategoryInfo.end(); ++it)
     {
         if (it->strName == strName)
@@ -326,13 +326,20 @@ bool CUserConfig::DeleteCategory(const string& strName)
             {
                 return false;
             }
-            
+
             d_ptr->m_vecCategoryInfo.erase(it);
             Write2File();
-            
+
             return true;
         }
     }
-    
+
     return false;
+}
+
+void CUserConfig::GetUIContentConfig(PARAM &param)
+{
+    vector<SCategoryInfo> vecCategories;
+    GetUIContentConfig(vecCategories);
+    param = reinterpret_cast<PARAM>(&vecCategories);
 }
