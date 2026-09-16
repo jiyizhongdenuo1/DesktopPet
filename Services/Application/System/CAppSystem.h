@@ -32,7 +32,7 @@ public:
 
 private:
     void AddSaveDataTask();
-    void SaveDataSeconed();
+    void SaveDataSeconded();
     void CreateThread();
     shared_ptr<CThreadHandler> GetThreadHandler(E_THREAD_ID eThreadId);
     void StartThread();

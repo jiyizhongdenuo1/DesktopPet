@@ -44,14 +44,8 @@
   },
   "UI":
   {
-    "windowWidth": 800,
-    "windowHeight": 600,
-    "windowX": 100,
-    "windowY": 100,
-    "isMaximized": false,
-    "showToolbar": true,
-    "showStatusBar": true,
-    "animationEnabled": true
+    "minWidth": 200,
+    "minHeight": 300
   },
   "DATA_SAVE_FILE":
   {

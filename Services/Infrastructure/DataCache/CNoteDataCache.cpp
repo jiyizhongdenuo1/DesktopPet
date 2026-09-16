@@ -61,11 +61,14 @@ void CNoteDataCache::SaveNoteDataCache(const ST_NOTE_DATA &stNoteData)
     {
         d_ptr->m_parrNoteData = make_shared<array<ST_NOTE_DATA, DDataCache::MAX_CACHE_SIZE>>();
     }
-    (*d_ptr->m_parrNoteData)[d_ptr->m_s32WritePos] = move(stNoteData);
-    d_ptr->m_s32WritePos = (d_ptr->m_s32WritePos + 1) % DDataCache::MAX_CACHE_SIZE;
-    if (d_ptr->m_s32Count < DDataCache::MAX_CACHE_SIZE)
+    if (d_ptr->m_s32WritePos >= 0 && d_ptr->m_s32WritePos < static_cast<int>(DDataCache::MAX_CACHE_SIZE))
     {
-        ++d_ptr->m_s32Count;
+        (*d_ptr->m_parrNoteData)[d_ptr->m_s32WritePos] = move(stNoteData);
+        d_ptr->m_s32WritePos = (d_ptr->m_s32WritePos + 1) % DDataCache::MAX_CACHE_SIZE;
+        if (d_ptr->m_s32Count < DDataCache::MAX_CACHE_SIZE)
+        {
+            ++d_ptr->m_s32Count;
+        }
     }
 }
 

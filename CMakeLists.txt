@@ -51,9 +51,17 @@ qt_add_executable(DesktopPet
 )
 
 # 设置可执行文件属性
+if(WIN32)
+    set_target_properties(DesktopPet PROPERTIES
+            WIN32_EXECUTABLE TRUE
+    )
+elseif(APPLE)
+    set_target_properties(DesktopPet PROPERTIES
+            MACOSX_BUNDLE TRUE
+    )
+endif()
+
 set_target_properties(DesktopPet PROPERTIES
-        WIN32_EXECUTABLE TRUE
-        MACOSX_BUNDLE TRUE
         OUTPUT_NAME ${PROJECT_NAME}
         QT_QML_MODULE_NO_IMPORT_SCAN TRUE
 )

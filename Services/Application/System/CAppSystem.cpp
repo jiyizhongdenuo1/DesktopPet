@@ -56,7 +56,7 @@ CAppSystem::~CAppSystem()
 
 void CAppSystem::SetThreadHandler(E_THREAD_ID eThreadId, CThreadHandler *pThreadHandler)
 {
-    if (NULL == pThreadHandler)
+    if (NULL == pThreadHandler || eThreadId < 0 || eThreadId >= E_THREAD_MAX)
     {
         return;
     }
@@ -80,7 +80,7 @@ void CAppSystem::AddSaveDataTask()
 
 }
 
-void CAppSystem::SaveDataSeconed()
+void CAppSystem::SaveDataSeconded()
 {
 }
 
@@ -113,7 +113,7 @@ void CAppSystem::CreateThread()
 
 shared_ptr<CThreadHandler> CAppSystem::GetThreadHandler(E_THREAD_ID eThreadId)
 {
-    if (0 <= eThreadId && eThreadId < sizeof(d_ptr->m_vecpThreadHanders) / sizeof(d_ptr->m_vecpThreadHanders[0]))
+    if (0 <= eThreadId && eThreadId < d_ptr->m_vecpThreadHanders.size())
     {
         return d_ptr->m_vecpThreadHanders[eThreadId];
     }
