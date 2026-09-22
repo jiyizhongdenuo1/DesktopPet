@@ -9,7 +9,3 @@
 #pragma once
 
 #include <DServiceBase.h>
-namespace DDataCache
-{
-    constexpr static INT32 MAX_CACHE_SIZE = 500;
-}

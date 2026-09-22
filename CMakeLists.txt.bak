@@ -29,7 +29,6 @@ find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2 Qml)
     qt_policy(SET QTP0001 NEW)
 #endif()
 add_library(GlobalQtConfig INTERFACE)
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-as-needed")
 target_link_libraries(GlobalQtConfig  INTERFACE
         Qt6::Core
         Qt6::Quick

@@ -15,6 +15,7 @@ target_link_libraries(Bootstrapper
         DataCache
         ConfigManager
         Config
+        CNoteBusiness
 )
 
 target_include_directories(Bootstrapper PUBLIC

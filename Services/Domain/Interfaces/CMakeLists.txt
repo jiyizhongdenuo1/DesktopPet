@@ -16,6 +16,7 @@ add_library(Interfaces STATIC
         
         # 旧版基类（待清理）
         IConfigBase.h
+        Inbound/IDataCache.h
 )
 
 # 关键：使用 INTERFACE 传播给所有依赖者，让它们能直接 #include "xxx.h"

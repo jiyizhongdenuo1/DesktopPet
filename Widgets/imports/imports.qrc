@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/qt/qml">
-
+        <file>LeftWdt.qml</file>
+        <file>StyledButton.qml</file>
     </qresource>
 </RCC>

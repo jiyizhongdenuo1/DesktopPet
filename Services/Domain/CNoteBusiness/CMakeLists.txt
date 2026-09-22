@@ -14,4 +14,5 @@ target_link_libraries(CNoteBusiness
         NoteDomain
         Interfaces
         Config
+        BaseServices
 )

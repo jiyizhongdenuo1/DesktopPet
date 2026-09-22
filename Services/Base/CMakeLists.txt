@@ -6,6 +6,7 @@
 add_library(BaseServices SHARED
         GlobalEnums.h
         DBackFun.h
+        DTranslation.h
 )
 
 target_compile_definitions(BaseServices

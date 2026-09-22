@@ -8,7 +8,9 @@ add_library(CMainWidgetServices STATIC
         CMainNoteListViewModel.cpp
         CMainNoteListViewModel.h
         CSidebarModel.cpp
-        CSidebarModel.h)
+        CSidebarModel.h
+        CMainConfigModel.cpp
+        CMainConfigModel.h)
 
 # 设置库的属性
 #set_target_properties(CMainWidgetServices PROPERTIES
@@ -35,5 +37,6 @@ target_link_libraries(CMainWidgetServices PRIVATE
     DataManager
     DataCache
     DataReadWriterModule
+    ConfigManager
     Qt6::Core
 )

@@ -13,6 +13,11 @@ namespace FixedValueSpace
     constexpr int RESERVED_COUNT = 20; ///< 结构体末尾预留指针数组的容量，用于未来功能扩展
 }
 
+namespace DDataCache
+{
+    constexpr static INT32 MAX_CACHE_SIZE = 500;
+}
+
 
 enum E_NOTE_EVENT_TYPE
 {
@@ -71,7 +76,10 @@ typedef struct st_NoteData
     time_t                          m_s64RemindTime;            ///< 提醒触发时间 (Unix Timestamp, 0 表示不提醒)
     time_t                          m_s64NoteTime;              ///< 便签创建时间 (Unix Timestamp)
     time_t                          m_s64UpdateTime;            ///< 最后修改时间
-
+    time_t                          m_S64LastRemindTime;        ///< 上一次提醒时间 (Unix Timestamp)
+    time_t                          m_S64CompletionTime;        //
+    time_t                          m_S64DelayTriggerTime;      //
+    INT16U                          m_s16CustomInterval;        ///< 自定义间隔（单位：天）
     // --- 扩展数据 ---
     char                            m_cEvent[NoteSpace::NOTE_DATA_EVENT_COUNT];  ///< 关联事件或附件的指针数组
     E_NOTE_REMIND_FREQUENCY         m_eRemindFrequency;         ///< 提醒频率（不提醒/单次/每天/每周/每月/自定义）

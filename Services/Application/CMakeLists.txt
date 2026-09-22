@@ -18,3 +18,4 @@ target_link_libraries(ConfigManager PUBLIC
 
 add_subdirectory(System)
 add_subdirectory(DataManager)
+add_subdirectory(CNoteApp)

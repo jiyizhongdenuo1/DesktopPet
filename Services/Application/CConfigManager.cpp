@@ -179,6 +179,24 @@ void CConfigManager::SetWindowPosition(int nX, int nY)
                         reinterpret_cast<PARAM>(strPos.c_str()));
 }
 
+void CConfigManager::GetWindowSize(int& nWidth, int& nHeight) const
+{
+    string strW, strH;
+
+    m_pUserConfig->GetValue(UICONTENT_SECTION, USER_CONFIG_WINDOW_WIDTH, strW);
+    m_pUserConfig->GetValue(UICONTENT_SECTION, USER_CONFIG_WINDOW_HEIGHT, strH);
+
+    nWidth  = strW.empty() ? 600 : stoi(strW);
+    nHeight = strH.empty() ? 400 : stoi(strH);
+}
+
+bool CConfigManager::GetWindowIsMaximized() const
+{
+    string value;
+    m_pUserConfig->GetValue(UICONTENT_SECTION, USER_CONFIG_WINDOW_IS_MAXIMIZED, value);
+    return value == "true" || value == "1";
+}
+
 string CConfigManager::GetBackgroundPath() const
 {
     string path;
