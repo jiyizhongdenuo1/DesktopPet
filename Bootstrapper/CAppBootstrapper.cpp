@@ -65,7 +65,7 @@ void CAppBootstrapper::InitDataLayer()
     m_pNoteCache = make_shared<CNoteDataCache>();
 
     m_pNoteCollect = make_shared<CNoteDataCollect>(
-        NDataManager::NOTE_BUFFER_ITEM_COUNT_MAX * static_cast<INT32>(sizeof(NOTE_MODEL_ITEM)));
+        NDataManager::NOTE_BUFFER_ITEM_COUNT_MAX * static_cast<INT32>(sizeof(ST_NOTE_DATA)));
 
     auto pDataSave = make_shared<CDataSave>(make_unique<NOTE_FILE_HEADER>());
     m_pDataSaverMgr = make_shared<CDataRWMgr>(pDataSave, g_ConfigManager->GetDataPath());
@@ -142,12 +142,7 @@ void CAppBootstrapper::InitThreadSystem()
 
 void CAppBootstrapper::RegisterSchedules()
 {
-    // auto pBusiness = m_pNoteBusiness;
-
-    // g_CAppSystem->RegisterSecEvent([pBusiness]()
-    // {
-    //     pBusiness->DoSecend();
-    // });
+    g_CAppSystem->SetCache(m_pNoteCache);
 }
 
 void CAppBootstrapper::Run()

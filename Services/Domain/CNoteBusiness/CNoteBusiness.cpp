@@ -1,6 +1,6 @@
 /*
  * @file: CNoteBusiness.h
- * @brief: 
+ * @brief:
  * @author: nuo
  * @date: 2026/7/23
  * @Detail:
@@ -12,23 +12,17 @@
 #include "DTranslation.h"
 
 using namespace std;
-static BOOL IsTimeOfDayPassed(time_t tNow, time_t tRemind)
+
+/** 一天内的秒数（从 00:00:00 起算）；转换失败返回 -1 */
+static INT32 TimeOfDaySeconds(time_t t)
 {
-    std::tm now{}, rmd{};
-    if (!ToLocalTm(tNow, now) || !ToLocalTm(tRemind, rmd))
+    std::tm tmBuf{};
+    if (!ToLocalTm(t, tmBuf))
     {
-        return FALSE;
+        return -1;
     }
 
-    const INT32 s32NowSec = now.tm_hour * 3600 + now.tm_min * 60 + now.tm_sec;
-    const INT32 s32RmdSec = rmd.tm_hour * 3600 + rmd.tm_min * 60 + rmd.tm_sec;
-
-    return s32NowSec >= s32RmdSec;
-}
-
-static INT64 DayInterval(time_t t1, time_t t2)
-{
-    return LocalDayNumber(t2) - LocalDayNumber(t1);
+    return tmBuf.tm_hour * 3600 + tmBuf.tm_min * 60 + tmBuf.tm_sec;
 }
 
 CNoteBusiness::CNoteBusiness()
@@ -36,18 +30,48 @@ CNoteBusiness::CNoteBusiness()
 
 }
 
-INT32 CNoteBusiness::ProcessTip(const array<ST_NOTE_DATA, DDataCache::MAX_CACHE_SIZE> &arrstNoteData, INT32 s32Count)
+vector<INT32> CNoteBusiness::ProcessTip(NOTE_CACHE_SNAPSHOT parrCache)
 {
-    std::time_t t_Current = std::time(nullptr);
+    // 与"现在"有关的三项只算一次，循环内复用
+    SNowTime stNow;
+    stNow.m_tNow   = std::time(nullptr);
+    stNow.m_s64Day = LocalDayNumber(stNow.m_tNow);
+    stNow.m_s32Sec = TimeOfDaySeconds(stNow.m_tNow);
+    std::vector<INT32> vec_TipCache;
+    vec_TipCache.clear();
 
-    for (INT32 i = 0; i < s32Count; ++i)
+    if (stNow.m_s32Sec < 0)
     {
-        if (!ShouldSkip(arrstNoteData[i]) && MatchFrequency(arrstNoteData[i], t_Current) && DayInterval(arrstNoteData[i].m_s64RemindTime, t_Current) > 0)
-        {
-            return arrstNoteData[i].m_s32id;
-        }
+        return vec_TipCache;
     }
-    return -1;
+    for (size_t i = 0; i < parrCache->size(); ++i)
+    {
+        const ST_NOTE_DATA &st_Note = (*parrCache)[i];
+        if (ShouldSkip(st_Note))
+        {
+            continue;
+        }
+
+        // 提醒日还没到
+        const INT64 s64DayDiff = stNow.m_s64Day - LocalDayNumber(st_Note.m_s64RemindTime);
+        if (s64DayDiff < 0)
+        {
+            continue;
+        }
+
+        // 提醒日就是今天，但设定时刻早于创建时刻（设定时已过）→ 顺延到下一个周期
+        if (s64DayDiff == 0 && st_Note.m_s64RemindTime < st_Note.m_s64CreateTime)
+        {
+            continue;
+        }
+
+        if (MatchFrequency(st_Note, stNow))
+        {
+            vec_TipCache.push_back(i);
+        }
+
+    }
+    return vec_TipCache;
 }
 
 BOOL CNoteBusiness::ShouldSkip(const ST_NOTE_DATA &stNote) const
@@ -59,44 +83,50 @@ BOOL CNoteBusiness::ShouldSkip(const ST_NOTE_DATA &stNote) const
     return FALSE;
 }
 
-BOOL CNoteBusiness::MatchFrequency(const ST_NOTE_DATA &stNote, time_t s64Now) const
+BOOL CNoteBusiness::MatchFrequency(const ST_NOTE_DATA &stNote, const SNowTime &stNow) const
 {
+    // 不提醒
+    if (stNote.m_eRemindFrequency == E_NOTE_REMIND_NONE)
+    {
+        return FALSE;
+    }
+
+    // 单次：到点且从未提醒过（用精确时刻比较，日期与钟点一次判完）
+    if (stNote.m_eRemindFrequency == E_NOTE_REMIND_ONCE)
+    {
+        return (stNow.m_tNow >= stNote.m_s64RemindTime && stNote.m_S64LastRemindTime <= 0);
+    }
+
+    // 周期类：先统一确认"当天钟点已过"，再按周期取阈值
+    const INT32 s32RemindSec = TimeOfDaySeconds(stNote.m_s64RemindTime);
+    if (s32RemindSec < 0 || stNow.m_s32Sec < s32RemindSec)
+    {
+        return FALSE;
+    }
+
+    const INT64 s64LastDiff = stNow.m_s64Day - LocalDayNumber(stNote.m_S64LastRemindTime);
+
     switch(stNote.m_eRemindFrequency)
     {
-        case E_NOTE_REMIND_NONE:
-        {
-            return FALSE;
-        }
-        break;
-        case E_NOTE_REMIND_ONCE:
-        {
-            return (IsTimeOfDayPassed(s64Now, stNote.m_s64RemindTime) && 0 >= stNote.m_S64LastRemindTime);
-        }
-        break;
         case E_NOTE_REMIND_DAILY:
         {
-            return IsTimeOfDayPassed(s64Now, stNote.m_s64RemindTime);
+            return (s64LastDiff >= 1);
         }
-        break;
         case E_NOTE_REMIND_WEEKLY:
         {
-            return (DayInterval(stNote.m_S64LastRemindTime, s64Now) >= 7 && IsTimeOfDayPassed(s64Now, stNote.m_s64RemindTime));
+            return (s64LastDiff >= 7);
         }
-        break;
         case E_NOTE_REMIND_MONTHLY:
         {
-            return (DayInterval(stNote.m_S64LastRemindTime, s64Now) >= 30 && IsTimeOfDayPassed(s64Now, stNote.m_s64RemindTime));
+            return (s64LastDiff >= 30);
         }
-        break;
         case E_NOTE_REMIND_CUSTOM:
         {
-            return (DayInterval(stNote.m_S64LastRemindTime, s64Now) >= stNote.m_s16CustomInterval && IsTimeOfDayPassed(s64Now, stNote.m_s64RemindTime));
+            return (s64LastDiff >= stNote.m_s16CustomInterval);
         }
-        break;
         default:
         {
             return FALSE;
         }
-        break;
     }
 }

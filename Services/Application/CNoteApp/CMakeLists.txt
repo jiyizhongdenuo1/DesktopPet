@@ -11,6 +11,11 @@ target_include_directories(CNoteApp PUBLIC
 
 target_link_libraries(CNoteApp
         PRIVATE
+        CoreTypes
         CNoteBusiness
+        BaseServices
+        Interfaces
+        CNoteBusiness
+
 )
 

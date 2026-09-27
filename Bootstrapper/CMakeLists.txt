@@ -16,6 +16,7 @@ target_link_libraries(Bootstrapper
         ConfigManager
         Config
         CNoteBusiness
+        CNoteApp
 )
 
 target_include_directories(Bootstrapper PUBLIC

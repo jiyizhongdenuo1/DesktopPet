@@ -11,8 +11,8 @@ target_include_directories(CNoteBusiness PUBLIC
 target_link_libraries(CNoteBusiness
         PRIVATE
         CoreTypes
-        NoteDomain
         Interfaces
         Config
         BaseServices
+        NoteDomain
 )

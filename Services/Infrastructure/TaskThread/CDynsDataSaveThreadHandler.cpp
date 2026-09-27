@@ -45,6 +45,14 @@ static void func_SaveNoteData(shared_ptr<CDataRWMgr> pDataSaveRWMgr, ST_DATA_SAV
 
     if (s32_ReadSize > 0)
     {
+        auto p_Cache = g_ServiceLocator.GetNoteCache();
+        if (p_Cache)
+        {
+            const INT32 s32Count = s32_ReadSize / static_cast<INT32>(sizeof(ST_NOTE_DATA));
+            const auto *pArrNote = reinterpret_cast<const ST_NOTE_DATA *>(pNoteData);
+            p_Cache->AppendNoteData(pArrNote, s32Count);      // 整批只发布一次快照
+        }
+
         pDataSaveRWMgr->AddOneNoteData(pNoteData, s32_ReadSize);
     }
 
@@ -104,8 +112,8 @@ private:
 CDynsDataSaveThreadHandler::CDynsDataSaveThreadHandler()
     : d_ptr(new CDynsDataSaveThreadHandlerPrivate(this))
 {
-    d_ptr->m_mapFunc[DataSaveFucName::MSG_DATASAVE_NOTE] = func_SaveNoteData;
-    d_ptr->m_mapFunc[DataSaveFucName::MSG_DATAREAD_NOTE] = func_ReadNoteData;
+    d_ptr->m_mapFunc[DataSaveFucName::MSG_DATASAVE_NOTE]    = func_SaveNoteData;
+    d_ptr->m_mapFunc[DataSaveFucName::MSG_DATAREAD_NOTE]    = func_ReadNoteData;
 
 }
 
@@ -211,6 +219,6 @@ void CDynsDataSaveThreadHandler::AddTask(const string &strKey, const unordered_m
     auto pThread = m_pThread.lock();
     if (pThread)
     {
-        pThread->WakeUp(s32_MaxLimit);
+        pThread->WakeUp(1);
     }
 }

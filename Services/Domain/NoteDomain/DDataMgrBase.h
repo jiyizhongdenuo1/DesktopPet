@@ -9,8 +9,13 @@
 #pragma once
 
 #include <string>
+#include <memory>
+#include <vector>
 #include "datatype.h"
 #include <DServiceBase.h>
+
+
+using NOTE_CACHE_SNAPSHOT = std::shared_ptr<const std::vector<ST_NOTE_DATA>>;
 
 typedef  struct st_NoteModelItem
 {

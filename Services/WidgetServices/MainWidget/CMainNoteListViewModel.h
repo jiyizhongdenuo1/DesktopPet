@@ -85,7 +85,7 @@ public:
      * @param newContent 新内容
      */
     Q_INVOKABLE void UpdateNoteContent(int index, const QString &newContent);
-    void PutArrNoteData(std::shared_ptr<std::array<ST_NOTE_DATA, DDataCache::MAX_CACHE_SIZE>> pArrData, INT32 s32Count);
+    void PutArrNoteData(NOTE_CACHE_SNAPSHOT pSnapshot);
 private:
     void Init();
     void InitService();

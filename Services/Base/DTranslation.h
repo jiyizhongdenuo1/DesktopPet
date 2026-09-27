@@ -31,3 +31,21 @@ static INT64 LocalDayNumber(time_t t)
 
     return static_cast<INT64>(mktime(&tmBuf)) / 86400;
 }
+
+/** 取 tRef 的时分秒、日期用当天；转换失败返回 -1 */
+static time_t TodayWithTimeOfDay(time_t tRef)
+{
+    std::tm tmToday{};
+    std::tm tmRef{};
+    if (!ToLocalTm(std::time(nullptr), tmToday) || !ToLocalTm(tRef, tmRef))
+    {
+        return -1;
+    }
+
+    tmToday.tm_hour  = tmRef.tm_hour;
+    tmToday.tm_min   = tmRef.tm_min;
+    tmToday.tm_sec   = tmRef.tm_sec;
+    tmToday.tm_isdst = -1;          // 让 mktime 自己判夏令时
+
+    return mktime(&tmToday);
+}

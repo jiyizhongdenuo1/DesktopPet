@@ -16,6 +16,7 @@
 #include "DThread.h"
 #include "DDataCache.h"
 #include "CNoteDataCache.h"
+#include "CNoteApp.h"
 
 using namespace std;
 CAppSystem *CAppSystem::m_pInstance = nullptr;
@@ -41,7 +42,7 @@ public:
 private:
     vector<shared_ptr<CThread>>                 m_vecpThread;
     vector<shared_ptr<CThreadHandler>>          m_vecpThreadHanders;
-    unique_ptr<CAppSystem>                      q_ptr;
+    unique_ptr<CNoteApp>                        m_pNoteApp;
 };
 
 CAppSystem::CAppSystem()
@@ -86,6 +87,7 @@ void CAppSystem::SaveDataSeconded()
 
 void CAppSystem::IniAppFrame()
 {
+
     CreateThread();
     auto p_SystemThreadHandler = dynamic_pointer_cast<CSystemThreadHandler>(d_ptr->m_vecpThreadHanders[E_THREAD_SYSTEM]);
     if (p_SystemThreadHandler)
@@ -93,6 +95,7 @@ void CAppSystem::IniAppFrame()
         p_SystemThreadHandler->SetSystemThreadFunc(bind(&CAppSystem::DoSecEvent, this) );
     }
     StartThread();
+    CreateModule();
     InitSystem();
 }
 
@@ -128,6 +131,14 @@ void CAppSystem::StartThread()
     }
 }
 
+void CAppSystem::CreateModule()
+{
+    if (!d_ptr->m_pNoteApp)
+    {
+        d_ptr->m_pNoteApp = make_unique<CNoteApp>();
+    }
+}
+
 void CAppSystem::InitSystem()
 {
     auto p_ThreadHander = dynamic_pointer_cast<CDynsDataSaveThreadHandler>(d_ptr->m_vecpThreadHanders[E_THREAD_DYNC_DATA]);
@@ -135,4 +146,9 @@ void CAppSystem::InitSystem()
     {
         p_ThreadHander->AddTask(DataSaveFucName::MSG_DATAREAD_NOTE, {{DataSaveFucName::READ_NOTE_DATA_SIZE, to_string(DDataCache::MAX_CACHE_SIZE)}});
     }
+}
+
+void CAppSystem::SetCache(std::shared_ptr<IDataCache> pCache)
+{
+    d_ptr->m_pNoteApp->SetCache(pCache);
 }

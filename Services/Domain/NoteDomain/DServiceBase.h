@@ -74,7 +74,7 @@ typedef struct st_NoteData
 
     // --- 时间信息 ---
     time_t                          m_s64RemindTime;            ///< 提醒触发时间 (Unix Timestamp, 0 表示不提醒)
-    time_t                          m_s64NoteTime;              ///< 便签创建时间 (Unix Timestamp)
+    time_t                          m_s64CreateTime;              ///< 便签创建时间 (Unix Timestamp)
     time_t                          m_s64UpdateTime;            ///< 最后修改时间
     time_t                          m_S64LastRemindTime;        ///< 上一次提醒时间 (Unix Timestamp)
     time_t                          m_S64CompletionTime;        //
@@ -98,8 +98,12 @@ typedef struct st_NoteData
         , m_eEventType(E_NOTE_EVENT_NONE)
         , m_eTimeSpanType(E_NOTE_TIME_SPAN_ONCE)
         , m_s64RemindTime(0)
-        , m_s64NoteTime(0)
+        , m_s64CreateTime(0)
         , m_s64UpdateTime(0)
+        , m_S64LastRemindTime(-1)
+        , m_S64CompletionTime(0)
+        , m_S64DelayTriggerTime(0)
+        , m_s16CustomInterval(0)
         , m_eRemindFrequency(E_NOTE_REMIND_NONE)
         , m_bCompleted(FALSE)
         , m_bDeleted(FALSE)

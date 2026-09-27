@@ -8,6 +8,7 @@
 # @update: 
 #   - 2026/8/18 - 适配新目录结构 + 排除编译产物
 #   - 2026/9/10 - 排除测试代码、文档、IDE配置等非必要文件
+#   - 2026/9/27 - 改为包含式拷贝 + 新增文档文件夹
 # ============================================================
 
 set -e
@@ -25,50 +26,62 @@ echo "========================================"
 rm -rf "${DEST_DIR}"
 mkdir -p "${DEST_DIR}"
 
-# 定义通用排除项（编译产物、版本控制、IDE配置、日志等）
-COMMON_EXCLUDES=(
-    'bin/'
-    'build/'
-    '.git/'
-    '.gitignore'
-    '.qtcreator/'
-    '*.log'
-    '*.o'
-    '*.a'
-    '*.so'
-    '*.dylib'
-    'CMakeFiles/'
-    'CMakeCache.txt'
-    'cmake_install.cmake'
-    'Makefile'
+# 定义需要拷贝的目录（包含式）
+COPY_DIRS=(
+    'Bootstrapper'
+    'Services'
+    'Widgets'
+    'config'
+    'resource'
+    'ExternalCode'
+    '文档'
 )
 
-# 构建 rsync 排除参数
-EXCLUDE_ARGS=""
-for exclude in "${COMMON_EXCLUDES[@]}"; do
-    EXCLUDE_ARGS="${EXCLUDE_ARGS} --exclude='${exclude}'"
+# Services 内部需要排除的子目录（测试代码）
+SERVICE_EXCLUDES=(
+    '--exclude=TestCode/'
+)
+
+# 定义需要拷贝的根目录文件
+COPY_FILES=(
+    'main.cpp'
+    'CMakeLists.txt'
+    'Autoqmldir'
+)
+
+# 1. 拷贝目录
+idx=1
+total=$((${#COPY_DIRS[@]} + ${#COPY_FILES[@]}))
+for dir_name in "${COPY_DIRS[@]}"; do
+    src="${PROJECT_DIR}/${dir_name}"
+    if [ ! -d "${src}" ]; then
+        echo "⚠️  [${idx}/${total}] 跳过不存在的目录: ${dir_name}/"
+        idx=$((idx + 1))
+        continue
+    fi
+
+    echo "📂 [${idx}/${total}] 拷贝 ${dir_name}/..."
+    if [ "${dir_name}" = "Services" ]; then
+        rsync -a "${SERVICE_EXCLUDES[@]}" "${src}" "${DEST_DIR}/" || true
+    else
+        rsync -a "${src}" "${DEST_DIR}/" || true
+    fi
+    idx=$((idx + 1))
 done
 
-# 1. 复制核心代码目录
-echo ""
-echo "📂 [1/5] 复制 Bootstrapper..."
-eval rsync -a ${EXCLUDE_ARGS} "${PROJECT_DIR}/Bootstrapper" "${DEST_DIR}/" || true
+# 2. 拷贝根目录文件
+for file_name in "${COPY_FILES[@]}"; do
+    src="${PROJECT_DIR}/${file_name}"
+    if [ ! -f "${src}" ]; then
+        echo "⚠️  [${idx}/${total}] 跳过不存在的文件: ${file_name}"
+        idx=$((idx + 1))
+        continue
+    fi
 
-echo "📂 [2/5] 复制 Services（排除 TestCode）..."
-eval rsync -a ${EXCLUDE_ARGS} --exclude='TestCode/' "${PROJECT_DIR}/Services" "${DEST_DIR}/" || true
-
-echo "📂 [3/5] 复制 Widgets..."
-eval rsync -a ${EXCLUDE_ARGS} "${PROJECT_DIR}/Widgets" "${DEST_DIR}/" || true
-
-# 2. 复制配置文件
-echo "📂 [4/5] 复制 config..."
-cp -r "${PROJECT_DIR}/config" "${DEST_DIR}/" || true
-
-# 3. 复制根目录必要文件
-echo "📂 [5/5] 复制根目录文件..."
-cp "${PROJECT_DIR}/main.cpp" "${DEST_DIR}/" 2>/dev/null || true
-cp "${PROJECT_DIR}/CMakeLists.txt" "${DEST_DIR}/" 2>/dev/null || true
-cp "${PROJECT_DIR}/Autoqmldir" "${DEST_DIR}/" 2>/dev/null || true
+    echo "📄 [${idx}/${total}] 拷贝 ${file_name}..."
+    cp "${src}" "${DEST_DIR}/" 2>/dev/null || true
+    idx=$((idx + 1))
+done
 
 # 输出结果
 echo ""
@@ -86,16 +99,19 @@ echo "────────────────────────�
 echo ""
 echo "✨ 已包含："
 echo "  ✓ Bootstrapper/ (应用启动器)"
-echo "  ✓ Services/ (核心服务层)"
+echo "  ✓ Services/ (核心服务层，不含 TestCode)"
 echo "  ✓ Widgets/ (QML界面)"
 echo "  ✓ config/ (配置文件)"
+echo "  ✓ resource/ (资源文件)"
+echo "  ✓ ExternalCode/ (外部代码)"
+echo "  ✓ 文档/ (项目文档)"
 echo "  ✓ 根目录构建文件"
 echo ""
 echo "❌ 已排除："
-echo "  ✗ TestCode/ (测试代码和GoogleTest)"
-echo "  ✗ 文档/ (文档资料)"
+echo "  ✗ TestCode/ (测试代码)"
 echo "  ✗ Scripts/ (工具脚本)"
-echo "  ✗ .qtcreator/ (IDE配置)"
 echo "  ✗ bin/, build/ (编译产物)"
-echo "  ✗ *.log, *.o, *.a (中间文件)"
+echo "  ✗ .qtcreator/, .git/ (IDE和版本控制)"
+echo "  ✗ data/, RecordNoteData/ (运行时数据)"
+echo "  ✗ win/, vulkan_win_headers/ (平台特定)"
 echo "========================================"

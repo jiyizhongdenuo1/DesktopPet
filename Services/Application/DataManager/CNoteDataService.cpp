@@ -25,13 +25,13 @@ CNoteDataService::~CNoteDataService() = default;
 
 void CNoteDataService::AddNote(const NOTE_MODEL_ITEM &stModelItem)
 {
-    ST_NOTE_DATA st_NoteData{};
-    ConvertUIToDomain(stModelItem, st_NoteData);
+//    ST_NOTE_DATA st_NoteData{};
+//    ConvertUIToDomain(stModelItem, st_NoteData);
 
-    if (m_pCache)
-    {
-        m_pCache->SaveNoteDataCache(st_NoteData);
-    }
+//    if (m_pCache)
+//    {
+//        m_pCache->SaveNoteDataCache(st_NoteData);
+//    }
 
     if (m_pBuffer)
     {
@@ -53,9 +53,9 @@ int CNoteDataService::LoadFromBuffer(char *pBuffer, INT32 s32BufferSize)
     {
         INT32 s32_PutCount = m_pCache->PutBuffer2CacheData(pBuffer, s32BufferSize);
         if (s32_PutCount > 0 && m_NoteDataCallback)
-            {
-                NotifyDataLoaded(s32_PutCount);
-            }
+        {
+            NotifyDataLoaded();
+        }
         return s32_PutCount;
     }
     return 0;
@@ -74,7 +74,7 @@ void CNoteDataService::ConvertUIToDomain(const NOTE_MODEL_ITEM &stModelItem, ST_
     stNoteData.m_eNoteLevel      = stModelItem.m_eNoteLevel;
     stNoteData.m_eTimeSpanType   = stModelItem.m_eTimeSpanType;
     stNoteData.m_s64RemindTime   = stModelItem.m_s64RemindTime;
-    stNoteData.m_s64NoteTime     = stModelItem.m_s64WriteTime;
+    stNoteData.m_s64CreateTime   = stModelItem.m_s64WriteTime;
     stNoteData.m_s64UpdateTime   = stModelItem.m_s64ModifyTime;
     stNoteData.m_eRemindFrequency= stModelItem.m_eRemindFrequency;
     stNoteData.m_eEventType      = stModelItem.m_eEventType;
@@ -98,13 +98,7 @@ void CNoteDataService::ConvertUIToDomain(const NOTE_MODEL_ITEM &stModelItem, ST_
     }
 }
 
-void CNoteDataService::NotifyDataLoaded(INT32 s32Count)
+void CNoteDataService::NotifyDataLoaded()
 {
-    auto pCacheData = m_pCache->GetCache();
-    if (!pCacheData)
-    {
-        return;
-    }
-
-    m_NoteDataCallback(pCacheData, s32Count);
+    m_NoteDataCallback(m_pCache->GetSnapshot());
 }

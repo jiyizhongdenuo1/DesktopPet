@@ -30,7 +30,7 @@ void CNoteDataCollect::AppendData(const NOTE_MODEL_ITEM &stModelItem)
     st_NoteData.m_eNoteLevel      = stModelItem.m_eNoteLevel;
     st_NoteData.m_eTimeSpanType   = stModelItem.m_eTimeSpanType;
     st_NoteData.m_s64RemindTime   = stModelItem.m_s64RemindTime;
-    st_NoteData.m_s64NoteTime     = stModelItem.m_s64WriteTime;
+    st_NoteData.m_s64CreateTime     = stModelItem.m_s64WriteTime;
     st_NoteData.m_s64UpdateTime   = stModelItem.m_s64ModifyTime;
     st_NoteData.m_eRemindFrequency= stModelItem.m_eRemindFrequency;
     st_NoteData.m_eEventType      = stModelItem.m_eEventType;
@@ -53,10 +53,8 @@ void CNoteDataCollect::AppendData(const NOTE_MODEL_ITEM &stModelItem)
         st_NoteData.m_szContent[0] = '\0';
     }
 
-    char *pNoteData = new char[sizeof(st_NoteData)];
-    memcpy(pNoteData, &st_NoteData, sizeof(st_NoteData));
-    SetBuffer(sizeof(st_NoteData), pNoteData);
-    delete[] pNoteData;
+    // 直接写入环形缓冲，省掉中间那次拷贝
+    SetBuffer(sizeof(st_NoteData), reinterpret_cast<const char *>(&st_NoteData));
 }
 
 INT32 CNoteDataCollect::ReadBuffer(INT32 s32GetSize, char *pcBuffer)
@@ -71,7 +69,8 @@ bool CNoteDataCollect::HasData() const
 
 void CNoteDataCollect::Clear()
 {
-    CDataCollectBase::ResetBuffer();
+    // 丢弃未读数据；只能由消费者线程（数据线程）调用
+    CDataCollectBase::DiscardAll();
 }
 
 INT32 CNoteDataCollect::GetBufferSize() const

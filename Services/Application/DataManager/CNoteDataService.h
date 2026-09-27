@@ -16,7 +16,7 @@
 class CNoteDataCache;
 class INoteDataBuffer;
 
-using CALLBACK_NOTEDATALOAD = std::function<void(std::shared_ptr<std::array<ST_NOTE_DATA, DDataCache::MAX_CACHE_SIZE>> pArrData, INT32 s32Count)>;
+using CALLBACK_NOTEDATALOAD = std::function<void(NOTE_CACHE_SNAPSHOT pSnapshot)>;
 
 class CNoteDataService
 {
@@ -66,7 +66,7 @@ private:
      ************************************************************/
     static void ConvertUIToDomain(const NOTE_MODEL_ITEM &stModelItem, ST_NOTE_DATA &stNoteData);
 
-    void NotifyDataLoaded(INT32 s32Count);
+    void NotifyDataLoaded();
 
     std::shared_ptr<CNoteDataCache>   m_pCache;      ///< 缓存实例（用于显示）
     std::shared_ptr<INoteDataBuffer>  m_pBuffer;     ///< 缓冲区接口实例（待写队列）

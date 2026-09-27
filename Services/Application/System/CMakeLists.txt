@@ -12,7 +12,9 @@ target_link_libraries(CAppSystem
         TaskThread
         Factory
         DataCache
-        ThreadBase)
+        ThreadBase
+        CNoteApp
+)
 
 target_include_directories(CAppSystem PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>

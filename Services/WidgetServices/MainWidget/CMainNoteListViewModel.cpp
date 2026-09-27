@@ -97,28 +97,32 @@ void CMainNoteListViewModel::UpdateNoteContent(int index, const QString &newCont
     }
 }
 
-void CMainNoteListViewModel::PutArrNoteData(std::shared_ptr<std::array<ST_NOTE_DATA, DDataCache::MAX_CACHE_SIZE>> pArrData, INT32 s32Count)
+void CMainNoteListViewModel::PutArrNoteData(NOTE_CACHE_SNAPSHOT pSnapshot)
 {
     beginResetModel();
     m_vecNote.clear();
-    m_vecNote.reserve(static_cast<int>(s32Count));
 
-    for (INT32 s32_Idx = 0; s32_Idx < s32Count; ++s32_Idx)
+    if (pSnapshot)
     {
-        const auto &st_Src = (*pArrData)[s32_Idx];
-        st_NoteModelItem st_ModelItem;
-        st_ModelItem.m_s64NoteId        = st_Src.m_s32id;
-        st_ModelItem.m_eNoteLevel       = st_Src.m_eNoteLevel;
-        st_ModelItem.m_eTimeSpanType    = st_Src.m_eTimeSpanType;
-        st_ModelItem.m_s64RemindTime    = st_Src.m_s64RemindTime;
-        st_ModelItem.m_s64WriteTime     = st_Src.m_s64NoteTime;
-        st_ModelItem.m_s64ModifyTime    = st_Src.m_s64UpdateTime;
-        st_ModelItem.m_eRemindFrequency = st_Src.m_eRemindFrequency;
-        st_ModelItem.m_eEventType       = st_Src.m_eEventType;
-        st_ModelItem.m_bCompleted       = st_Src.m_bCompleted;
-        st_ModelItem.m_bDeleted         = st_Src.m_bDeleted;
-        st_ModelItem.m_strContent       = st_Src.m_szContent;
-        m_vecNote.append(st_ModelItem);
+        m_vecNote.reserve(static_cast<int>(pSnapshot->size()));
+
+        for (const auto &st_Src : *pSnapshot)
+        {
+            st_NoteModelItem st_ModelItem;
+            st_ModelItem.m_s64NoteId        = st_Src.m_s32id;
+            st_ModelItem.m_eNoteLevel       = st_Src.m_eNoteLevel;
+            st_ModelItem.m_eTimeSpanType    = st_Src.m_eTimeSpanType;
+            st_ModelItem.m_s64RemindTime    = st_Src.m_s64RemindTime;
+            st_ModelItem.m_s64WriteTime     = st_Src.m_s64CreateTime;
+            st_ModelItem.m_s64ModifyTime    = st_Src.m_s64UpdateTime;
+            st_ModelItem.m_eRemindFrequency = st_Src.m_eRemindFrequency;
+            st_ModelItem.m_eEventType       = st_Src.m_eEventType;
+            st_ModelItem.m_bCompleted       = st_Src.m_bCompleted;
+            st_ModelItem.m_bDeleted         = st_Src.m_bDeleted;
+            st_ModelItem.m_strContent       = st_Src.m_szContent;
+            m_vecNote.append(st_ModelItem);
+        }
+
     }
 
     endResetModel();
@@ -143,12 +147,20 @@ void CMainNoteListViewModel::InitService()
          * 数据线程的回调通过 QMetaObject::invokeMethod + Qt::QueuedConnection
          * 将数据 marshal 到主线程事件队列执行，避免跨线程操作模型导致 SIGSEGV。
          */
+//        m_pNoteService->RegisterNoteModelDataLoadCallback(
+//            [this](std::shared_ptr<std::array<ST_NOTE_DATA, DDataCache::MAX_CACHE_SIZE>> pArrData, INT32 s32Count)
+//            {
+//                QMetaObject::invokeMethod(this, [this, pArrData, s32Count]()
+//                {
+//                    PutArrNoteData(pArrData, s32Count);
+//                }, Qt::QueuedConnection);
+//            });
         m_pNoteService->RegisterNoteModelDataLoadCallback(
-            [this](std::shared_ptr<std::array<ST_NOTE_DATA, DDataCache::MAX_CACHE_SIZE>> pArrData, INT32 s32Count)
+            [this](NOTE_CACHE_SNAPSHOT pSnapshot)
             {
-                QMetaObject::invokeMethod(this, [this, pArrData, s32Count]()
+                QMetaObject::invokeMethod(this, [this, pSnapshot]()
                 {
-                    PutArrNoteData(pArrData, s32Count);
+                    PutArrNoteData(pSnapshot);
                 }, Qt::QueuedConnection);
             });
     }

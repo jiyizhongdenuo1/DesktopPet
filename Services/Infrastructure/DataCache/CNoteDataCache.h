@@ -1,6 +1,6 @@
 /*
  * @file: CNoteDataCache.h
- * @brief: 
+ * @brief: 笔记数据缓存（Copy-on-Write 模式）
  * @author: nuo
  * @date: 2026/7/25
  * @Detail:
@@ -9,17 +9,16 @@
 #pragma once
 
 #include <memory>
-#include <array>
-#include <vector>
 
 #include "DServiceBase.h"
-#include "DDataCache.h"
+#include "IDataCache.h"
+#include "DDataMgrBase.h"
 
 class CNoteDataCachePrivate;
 /** ***********************************************************
  * @brief       笔记数据缓存（Copy-on-Write 模式）
  ************************************************************/
-class CNoteDataCache
+class CNoteDataCache : public IDataCache
 {
 public:
     /** ***********************************************************
@@ -40,43 +39,66 @@ public:
     void InvalidateCache();
 
     /** ***********************************************************
-     * @brief       获取缓存快照
-     * @param[in]   无
-     * @return      缓存数据的共享指针
-     ************************************************************/
-    std::shared_ptr<std::array<ST_NOTE_DATA, DDataCache::MAX_CACHE_SIZE>> GetCache();
-
-    /** ***********************************************************
-     * @brief       保存单条数据到缓存
+     * @brief       保存单条数据到缓存（环形写入）
      * @param[in]   stNoteData 笔记数据
      * @return      void
+     * @note        写满 MAX_CACHE_SIZE 后覆盖最旧数据
      ************************************************************/
     void SaveNoteDataCache(const ST_NOTE_DATA& stNoteData);
 
     /** ***********************************************************
-     * @brief       更新缓存内容
-     * @param[in]   vecNoteData 新的数据向量
+     * @brief       根据 id 更新缓存中的一条笔记
+     * @param[in]   stNoteData 待更新的笔记数据（含目标 id）
      * @return      void
+     * @note        若缓存中未找到匹配 id，则不做任何操作
      ************************************************************/
-    void UpdateNoteDataCache(const std::vector<ST_NOTE_DATA>& vecNoteData);
+    void UpdateNoteDataCache(const ST_NOTE_DATA& stNoteData) override;
 
     /** ***********************************************************
      * @brief       从原始缓冲区写入缓存
      * @param[in]   pBuffer        原始数据缓冲区
      * @param[in]   s32BufferSize  缓冲区大小（字节）
-     * @return      TRUE-成功，FALSE-失败
-     * @note        按 sizeof(ST_NOTE_DATA) 切分后直接 memcpy 到固定数组缓存，
-     *              超出 MAX_CACHE_SIZE 的部分会被截断
+     * @return      实际写入的条数（按 sizeof(ST_NOTE_DATA) 切分）
+     * @note        超出 MAX_CACHE_SIZE 的部分会被截断
      ************************************************************/
-    BOOL PutBuffer2CacheData(char *pBuffer, INT32 s32BufferSize);
+    INT32 PutBuffer2CacheData(char *pBuffer, INT32 s32BufferSize);
+
+    /** ***********************************************************
+     * @brief       批量追加笔记数据到缓存（环形写入）
+     * @param[in]   pArrNote 笔记数据数组
+     * @param[in]   s32Count  数组条数
+     * @return      void
+     * @note        整批只发布一次快照；写满后覆盖最旧数据
+     ************************************************************/
+    void AppendNoteData(const ST_NOTE_DATA* pArrNote, INT32 s32Count);
+
+    /** ***********************************************************
+     * @brief       获取当前缓存快照（线程安全）
+     * @return      缓存快照的共享指针，无数据时返回 nullptr
+     ************************************************************/
+    NOTE_CACHE_SNAPSHOT GetSnapshot() const override;
 
     /** ***********************************************************
      * @brief       获取缓存中有效数据的字节大小
-     * @param[in]   无
-      * @return      有效数据字节数（m_s32Count * sizeof(ST_NOTE_DATA)）
-     * @note        返回的是实际写入的数据量，非数组总容量；m_s32Count 上限 MAX_CACHE_SIZE
+     * @return      有效数据字节数（有效条数 * sizeof(ST_NOTE_DATA)）
      ************************************************************/
-    INT32 GetCacheSize();
+    INT32 GetCacheSize() const override;
+
+private:
+    /** ***********************************************************
+     * @brief       将当前有效数据发布为新的快照（原子替换）
+     * @param[in]   无
+     * @return      void
+     * @note        内部已加锁，调用方需已持有写锁或保证独占
+     ************************************************************/
+    void PublishSnapshot();
+
+    /** ***********************************************************
+     * @brief       清空缓存数组、写指针、计数，并发布快照
+     * @param[in]   无
+     * @return      void
+     ************************************************************/
+    void ClearCache();
 
 private:
     std::unique_ptr<CNoteDataCachePrivate> d_ptr;
