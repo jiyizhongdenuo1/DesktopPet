@@ -1,0 +1,5 @@
+add_subdirectory(CoreTypes)
+add_subdirectory(NoteDomain)
+add_subdirectory(Interfaces)
+add_subdirectory(CNoteBusiness)
+add_subdirectory(Thread)

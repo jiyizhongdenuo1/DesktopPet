@@ -1,0 +1,51 @@
+/*
+ * @file: DTranslation.h
+ * @brief: 
+ * @author: nuo
+ * @date: 2026/9/22
+ * @Detail:
+ */
+
+#pragma once
+
+static bool ToLocalTm(time_t t, std::tm& tmOut)
+{
+#if defined(_WIN32)
+    return localtime_s(&tmOut, &t) == 0;
+#else
+    return localtime_r(&t, &tmOut) != nullptr;
+#endif
+}
+
+static INT64 LocalDayNumber(time_t t)
+{
+    std::tm tmBuf{};
+    if (!ToLocalTm(t, tmBuf))
+    {
+        return 0;
+    }
+
+    tmBuf.tm_hour = 12;      // 取正午，避开夏令时当天 0 点 / 23 点的边界
+    tmBuf.tm_min  = 0;
+    tmBuf.tm_sec  = 0;
+
+    return static_cast<INT64>(mktime(&tmBuf)) / 86400;
+}
+
+/** 取 tRef 的时分秒、日期用当天；转换失败返回 -1 */
+static time_t TodayWithTimeOfDay(time_t tRef)
+{
+    std::tm tmToday{};
+    std::tm tmRef{};
+    if (!ToLocalTm(std::time(nullptr), tmToday) || !ToLocalTm(tRef, tmRef))
+    {
+        return -1;
+    }
+
+    tmToday.tm_hour  = tmRef.tm_hour;
+    tmToday.tm_min   = tmRef.tm_min;
+    tmToday.tm_sec   = tmRef.tm_sec;
+    tmToday.tm_isdst = -1;          // 让 mktime 自己判夏令时
+
+    return mktime(&tmToday);
+}

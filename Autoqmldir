@@ -1,0 +1,9 @@
+module mainNoteList
+linktarget mainNoteListplugin
+optional plugin mainNoteListplugin
+classname mainNoteListPlugin
+typeinfo mainNoteList.qmltypes
+depends content
+prefer :/qt/qml/mainNoteList/
+ListOfNotes 1.0 ListOfNotes.qml
+

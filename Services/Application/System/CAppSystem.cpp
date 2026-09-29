@@ -1,0 +1,154 @@
+/*
+ * @file: CAppSystem.h
+ * @brief: 
+ * @author: nuo
+ * @date: 2026/6/4
+ * @Detail:
+ */
+
+#include "CAppSystem.h"
+#include "GlobalEnums.h"
+#include "CThread.h"
+#include "CThreadHandler.h"
+#include "CDynsDataSaveThreadHandler.h"
+#include "CSystemThreadHandler.h"
+#include "CThreadFactory.h"
+#include "DThread.h"
+#include "DDataCache.h"
+#include "CNoteDataCache.h"
+#include "CNoteApp.h"
+
+using namespace std;
+CAppSystem *CAppSystem::m_pInstance = nullptr;
+CAppSystem *CAppSystem::GetInstance()
+{
+    if (!m_pInstance)
+    {
+        CAppSystem::m_pInstance  = new CAppSystem();
+    }
+    return m_pInstance;
+}
+
+class CAppSystemPrivate
+{
+    friend class CAppSystem;
+public:
+    explicit CAppSystemPrivate()
+    {
+        m_vecpThread.reserve(E_THREAD_MAX);
+        m_vecpThreadHanders.reserve(E_THREAD_MAX);
+    }
+
+private:
+    vector<shared_ptr<CThread>>                 m_vecpThread;
+    vector<shared_ptr<CThreadHandler>>          m_vecpThreadHanders;
+    unique_ptr<CNoteApp>                        m_pNoteApp;
+};
+
+CAppSystem::CAppSystem()
+    : d_ptr(make_unique<CAppSystemPrivate>())
+{
+    IniAppFrame();
+}
+
+CAppSystem::~CAppSystem()
+{
+}
+
+void CAppSystem::SetThreadHandler(E_THREAD_ID eThreadId, CThreadHandler *pThreadHandler)
+{
+    if (NULL == pThreadHandler || eThreadId < 0 || eThreadId >= E_THREAD_MAX)
+    {
+        return;
+    }
+    if (NULL != d_ptr->m_vecpThreadHanders[eThreadId])
+    {
+        d_ptr->m_vecpThreadHanders[eThreadId].reset(pThreadHandler);
+    }
+    else
+    {
+        d_ptr->m_vecpThreadHanders[eThreadId] = unique_ptr<CThreadHandler>(pThreadHandler);
+    }
+}
+
+void CAppSystem::AddSaveDataTask()
+{
+    shared_ptr<CDynsDataSaveThreadHandler> pThreadHandler = dynamic_pointer_cast<CDynsDataSaveThreadHandler>(d_ptr->m_vecpThreadHanders[E_THREAD_DYNC_DATA]);
+    if (pThreadHandler)
+    {
+        pThreadHandler->AddTask(DataSaveFucName::MSG_DATASAVE_NOTE, {});
+    }
+
+}
+
+void CAppSystem::SaveDataSeconded()
+{
+}
+
+void CAppSystem::IniAppFrame()
+{
+
+    CreateThread();
+    auto p_SystemThreadHandler = dynamic_pointer_cast<CSystemThreadHandler>(d_ptr->m_vecpThreadHanders[E_THREAD_SYSTEM]);
+    if (p_SystemThreadHandler)
+    {
+        p_SystemThreadHandler->SetSystemThreadFunc(bind(&CAppSystem::DoSecEvent, this) );
+    }
+    StartThread();
+    CreateModule();
+    InitSystem();
+}
+
+INT32 CAppSystem::DoSecEvent()
+{
+    AddSaveDataTask();
+    return true;
+}
+
+
+void CAppSystem::CreateThread()
+{
+    CThreadFactory factory;
+
+    d_ptr->m_vecpThreadHanders = factory.ReleaseHandlers();
+    d_ptr->m_vecpThread = factory.ReleaseThreads();
+}
+
+shared_ptr<CThreadHandler> CAppSystem::GetThreadHandler(E_THREAD_ID eThreadId)
+{
+    if (0 <= eThreadId && eThreadId < d_ptr->m_vecpThreadHanders.size())
+    {
+        return d_ptr->m_vecpThreadHanders[eThreadId];
+    }
+    return nullptr;
+}
+
+void CAppSystem::StartThread()
+{
+    for (auto &pThread : d_ptr->m_vecpThread)
+    {
+        pThread->start();
+    }
+}
+
+void CAppSystem::CreateModule()
+{
+    if (!d_ptr->m_pNoteApp)
+    {
+        d_ptr->m_pNoteApp = make_unique<CNoteApp>();
+    }
+}
+
+void CAppSystem::InitSystem()
+{
+    auto p_ThreadHander = dynamic_pointer_cast<CDynsDataSaveThreadHandler>(d_ptr->m_vecpThreadHanders[E_THREAD_DYNC_DATA]);
+    if (p_ThreadHander)
+    {
+        p_ThreadHander->AddTask(DataSaveFucName::MSG_DATAREAD_NOTE, {{DataSaveFucName::READ_NOTE_DATA_SIZE, to_string(DDataCache::MAX_CACHE_SIZE)}});
+    }
+}
+
+void CAppSystem::SetCache(std::shared_ptr<IDataCache> pCache)
+{
+    d_ptr->m_pNoteApp->SetCache(pCache);
+}
