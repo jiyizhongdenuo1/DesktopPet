@@ -25,9 +25,11 @@ public:
      * @brief       构造函数
      * @param[in]   pCache 缓存实例
      * @param[in]   pBuffer 缓冲区接口实例（待写队列）
+     * @param[in]   pRecycleBuffer 回收站缓冲区接口实例
      ************************************************************/
     CNoteDataService(std::shared_ptr<CNoteDataCache> pCache,
-                     std::shared_ptr<INoteDataBuffer> pBuffer);
+                     std::shared_ptr<INoteDataBuffer> pBuffer,
+                     std::shared_ptr<INoteDataBuffer> pRecycleBuffer);
 
     /** ***********************************************************
      * @brief       析构函数
@@ -57,7 +59,23 @@ public:
      ************************************************************/
     int LoadFromBuffer(char *pBuffer, INT32 s32BufferSize);
 
+    /** ***********************************************************
+     * @brief       将原始字节缓冲区解析为回收站数据并存入回收站缓存
+     * @param[in]   pBuffer        原始字节数据缓冲区
+     * @param[in]   s32BufferSize  缓冲区大小（字节）
+     * @return      成功存入回收站缓存的条数，失败返回0
+     ************************************************************/
+    int LoadRecycleFromBuffer(char *pBuffer, INT32 s32BufferSize);
+
+    BOOL DeleteNote(const NOTE_MODEL_ITEM &stModelItem);
+    VOID UpDataNextID(INT64 s64NextID);
     VOID RegisterNoteModelDataLoadCallback(CALLBACK_NOTEDATALOAD NoteDataCallback);
+
+    /** ***********************************************************
+     * @brief       注册缓存增量变更回调（新增/更新）
+     * @param[in]   ChangeCallback 变更回调，转发给底层缓存
+     ************************************************************/
+    VOID RegisterNoteChangeCallback(CACHE_CHANGE_CALLBACK ChangeCallback);
 private:
     /** ***********************************************************
      * @brief       将 UI 层数据转换为领域层数据格式
@@ -68,7 +86,8 @@ private:
 
     void NotifyDataLoaded();
 
-    std::shared_ptr<CNoteDataCache>   m_pCache;      ///< 缓存实例（用于显示）
-    std::shared_ptr<INoteDataBuffer>  m_pBuffer;     ///< 缓冲区接口实例（待写队列）
+    std::shared_ptr<CNoteDataCache>   m_pCache;         ///< 缓存实例（用于显示）
+    std::shared_ptr<INoteDataBuffer>  m_pBuffer;        ///< 缓冲区接口实例（待写队列）
+    std::shared_ptr<INoteDataBuffer>  m_pRecycleBuffer; ///< 回收站缓冲区接口实例
     CALLBACK_NOTEDATALOAD m_NoteDataCallback;    ///< 加载回调函数
 };

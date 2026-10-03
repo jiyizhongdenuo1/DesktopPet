@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <memory>
 #include <QAbstractListModel>
 
 #include "datatype.h"
@@ -89,18 +90,35 @@ public:
     Q_INVOKABLE void SetNoteLevel(int index, int level);
     Q_INVOKABLE void SetNoteType(int index, int type);
     Q_INVOKABLE void DeleteNote(int index);
+    Q_INVOKABLE void PinTop(int index);
 
     void PutArrNoteData(NOTE_CACHE_SNAPSHOT pSnapshot);
 
     void UpdateNoteIndex(INT32U u32Index);
+    void SetNextID(INT64 s64NextID);
+
+    /**
+     * @brief 注入数据服务并注册数据加载回调
+     * @param pService 笔记数据服务实例
+     */
+    void Init(std::shared_ptr<CNoteDataService> pService);
 private:
-    void Init();
-    void InitService();
     void PushContainer(const st_NoteModelItem& Item);
+
+    /** 把领域数据结构转换为界面模型结构 */
+    st_NoteModelItem ConvertToModel(const ST_NOTE_DATA &st_Src) const;
+
+    /** 在已显示列表中查找指定 id 的行号，未找到返回 -1 */
+    INT32 FindRow(INT64 s64NoteId) const;
+
+    /** 应用一条增量变更到列表模型 */
+    void ApplyChange(const SNoteCacheChange &stChange);
 private:
     QHash<INT32, QMap<INT64, st_NoteModelItem>> m_hashNoteData;
 
     std::shared_ptr<CNoteDataService>       m_pNoteService;
     QVector<st_NoteModelItem>               m_vecNote;
     E_NOTE_TYPE                             m_eCurNoteType;
+    INT64                                   m_s64NextID;
+    INT32                                   m_LastTopIndex;
 };

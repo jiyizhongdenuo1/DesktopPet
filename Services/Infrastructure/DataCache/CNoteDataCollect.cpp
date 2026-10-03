@@ -77,3 +77,26 @@ INT32 CNoteDataCollect::GetBufferSize() const
 {
     return CDataCollectBase::GetBufferSize();
 }
+
+BOOL CNoteDataCollect::DeleteNote(const NOTE_MODEL_ITEM &stModelItem)
+{
+    AppendData(stModelItem);
+    return FALSE;
+}
+
+void CNoteDataCollect::UpDateNoteData(const NOTE_MODEL_ITEM &stModelItem)
+{
+    AppendData(stModelItem);
+}
+
+VOID CNoteDataCollect::UpDataNextID(INT64 s64NextID)
+{
+    std::lock_guard<std::mutex> lock(m_mutexNextID);
+    m_s64NextID = s64NextID;
+}
+
+INT64 CNoteDataCollect::GetNextID() const
+{
+    std::lock_guard<std::mutex> lock(m_mutexNextID);
+    return m_s64NextID;
+}

@@ -25,9 +25,9 @@ void CNoteApp::DoSecend()
         vec_TipCache = m_pBusiness->ProcessTip(p_Snapshot);
         for (auto s32Tip : vec_TipCache)
         {
-            if (s32Tip < p_Snapshot->size() && s32Tip >= 0)
+            if (s32Tip < p_Snapshot->size() && s32Tip >= 0 && p_Snapshot->at(s32Tip))
             {
-                ST_NOTE_DATA st_Modify = p_Snapshot->at(s32Tip);
+                ST_NOTE_DATA st_Modify = *p_Snapshot->at(s32Tip);
                 const time_t t_LastRemind = TodayWithTimeOfDay(st_Modify.m_s64RemindTime);
                 if (t_LastRemind > 0)
                 {
@@ -37,7 +37,7 @@ void CNoteApp::DoSecend()
 
                 for (const auto &fn : m_vecfnTip)
                 {
-                    fn(p_Snapshot->at(s32Tip));
+                    fn(*p_Snapshot->at(s32Tip));
                 }
 
             }

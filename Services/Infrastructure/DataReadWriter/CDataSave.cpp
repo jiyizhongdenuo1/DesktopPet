@@ -52,6 +52,101 @@ INT64 CDataSave::GetSingleSTSize() const
     return m_pFileHeader->GetSingleSTSize();
 }
 
+bool CDataSave::SetNextId(INT64 s64NextId)
+{
+    if (m_pFileHeader == nullptr)
+    {
+        return FALSE;
+    }
+    m_pFileHeader->SetNextId(s64NextId);
+    return TRUE;
+}
+
+bool CDataSave::CompactNoteFile(const string &strFileName)
+{
+    unique_lock<shared_mutex> lock(m_mutexNote);
+    if (strFileName.empty()|| m_pFileHeader == nullptr || !ReadFileHeader(strFileName))
+    {
+        return FALSE;
+    }
+    const INT64 s64_HeaderSize   = m_pFileHeader->GetHeaderSize();
+    const INT64 s64_SingleSTSize = m_pFileHeader->GetSingleSTSize();
+    const INT64 s64_StoreCount   = m_pFileHeader->GetStoreCount();
+
+    if (s64_StoreCount <= 0 || s64_SingleSTSize <= 0)
+    {
+        return false;
+    }
+
+    ifstream file(strFileName, std::ios::binary);
+    if (!file.is_open())
+    {
+        return false;
+    }
+    INT64 s64_ReadSize = s64_SingleSTSize * s64_StoreCount;
+
+    char *p_Buffer = new char[s64_ReadSize];
+    s64_ReadSize = ReadData(file, p_Buffer, s64_ReadSize, s64_HeaderSize);
+    if (s64_ReadSize <= 0)
+    {
+        RELEASEIF(p_Buffer);
+        return false;
+    }
+    const auto *p_arr = reinterpret_cast<const ST_NOTE_DATA*> (p_Buffer);
+    const INT32 s32_ReadDataCount = s64_ReadSize / (s64_SingleSTSize);
+    std::map<INT64, ST_NOTE_DATA> map_Data;
+    for (INT32 i = 0; i < s32_ReadDataCount; ++i)
+    {
+        const ST_NOTE_DATA& st_Data = p_arr[i];
+        if (st_Data.m_s32id <= 0 || st_Data.m_bDeleted)
+        {
+            continue;
+        }
+        map_Data[st_Data.m_s32id] = st_Data;
+    }
+
+    m_pFileHeader->SetStoreCount(static_cast<INT64>(map_Data.size()));
+
+    const std::string str_Tmp = strFileName + ".tmp";
+    {
+        // ofstream 打开模式与"文件已存在"时的行为：
+        // ofstream 默认out ifstream 默认in
+        //   out         → 截断（清空） 创建文件
+        //   out | trunc → 截断（清空） 创建文件
+        //   out | app   → 不截断，追加到末尾 创建文件
+        //   out | in    → 不截断，可定位覆盖写 不创建文件
+        std::ofstream file(str_Tmp, std::ios::binary | std::ios::out | std::ios::trunc);
+        if (!file.is_open())
+        {
+            RELEASEIF(p_Buffer);
+            return false;
+        }
+        file.write(reinterpret_cast<const char *>(m_pFileHeader.get()), s64_HeaderSize);
+        {
+            for (const auto &pair_Data : map_Data)
+            {
+                file.write(reinterpret_cast<const char *>(&pair_Data.second), sizeof(ST_NOTE_DATA));
+            }
+        }
+        file.close();
+        if (!file.good())
+        {
+            std::filesystem::remove(str_Tmp);
+            RELEASEIF(p_Buffer);
+            return false;
+        }
+    }
+    RELEASEIF(p_Buffer);
+    std::error_code ec;
+    std::filesystem::rename(str_Tmp, strFileName, ec);
+    if (ec)
+    {
+        std::filesystem::remove(str_Tmp);
+        return false;
+    }
+    return true;
+}
+
 void CDataSave::ReadFileData(const string &strFileName, char *pBuffer, INT32 &s32BufferSize, INT32 s32ReadStartPos)
 {
     shared_lock<shared_mutex> lock(m_mutexNote);
@@ -70,18 +165,8 @@ void CDataSave::ReadFileData(const string &strFileName, char *pBuffer, INT32 &s3
             }
             return ;
         }
-        INT32 s32_ReadDataByte = 0;
-        file.seekg(0, std::ios::end);
-        s32_ReadDataByte = file.tellg();
-        if (s32_ReadDataByte <= 0)
-        {
-            qDebug()<<"file is empty!";
-            return ;
-        }
-        s32BufferSize = min(s32_ReadDataByte, s32BufferSize);
-
-        file.seekg(s32ReadStartPos, std::ios::beg);
-        file.read(pBuffer, s32BufferSize);
+        const INT32 s32_Read = ReadData(file, pBuffer, s32BufferSize, s32ReadStartPos);
+        s32BufferSize = (s32_Read > 0) ? s32_Read : 0;
         file.close();
     }
 }
@@ -104,7 +189,11 @@ bool CDataSave::Write2FileData(const string &strFileName, const char *pBuffer, I
         }
         ReadFileHeader(strFileName);
     }
-    CheckAndTruncateOldData(strFileName);
+    bool bIsTrunc = CheckAndTruncateOldData(strFileName);
+    if (bIsTrunc)
+    {
+        s64CurrentPos = GetFileLastCount() * GetSingleSTSize();
+    }
     if (m_pFileHeader != nullptr)
     {
         if (s64CurrentPos > 0)
@@ -134,7 +223,15 @@ bool CDataSave::Write2FileData(const string &strFileName, const char *pBuffer, I
         st_FileHeaderBase *p_FileHeader = m_pFileHeader.get();
         if (p_FileHeader != nullptr && p_FileHeader->GetSingleSTSize() > 0)
         {
-            p_FileHeader->SetStoreCount(p_FileHeader->GetStoreCount() + s32FileSize / p_FileHeader->GetSingleSTSize());
+            const INT64 s64WriteCount = s32FileSize / p_FileHeader->GetSingleSTSize();
+            if (s64CurrentPos > 0)
+            {
+                p_FileHeader->SetStoreCount(p_FileHeader->GetStoreCount() + s64WriteCount);
+            }
+            else
+            {
+                p_FileHeader->SetStoreCount(s64WriteCount);
+            }
         }
         UpdateNoteFileHeader(strFileName, p_FileHeader);
     }
@@ -145,6 +242,7 @@ bool CDataSave::IsOverFileStoreLimit(const std::string &strFileName)
 {
     if (!strFileName.empty() && m_pFileHeader != nullptr)
     {
+        unique_lock<shared_mutex> lock(m_mutexNote);
         ifstream file(strFileName, std::ios::binary);
         if (!file.is_open())
         {
@@ -167,7 +265,7 @@ bool CDataSave::IsOverFileStoreLimit(const std::string &strFileName)
 
 bool CDataSave::CreateNewFile(const std::string &strFileName)
 {
-    if (!strFileName.empty() && m_pFileHeader != nullptr)
+    if (!strFileName.empty() && m_pFileHeader != nullptr && !filesystem::exists(strFileName))
     {
         filesystem::path fs_Path(strFileName);
         filesystem::path path_Dir = fs_Path.parent_path();
@@ -233,7 +331,7 @@ bool CDataSave::ReadFileHeader(const std::string &strFileName)
     if (!strFileName.empty() && m_pFileHeader != nullptr)
     {
         const INT64 s64_HeaderSize = m_pFileHeader->GetHeaderSize();
-        memset(m_pFileHeader.get(), 0, s64_HeaderSize);
+        const INT64 s64_KeepNextId  = m_pFileHeader->GetNextId();
         fstream file(strFileName, std::ios::in | std::ios::binary);
         if (!file.is_open())
         {
@@ -247,11 +345,37 @@ bool CDataSave::ReadFileHeader(const std::string &strFileName)
             }
             return false;
         }
+        memset(m_pFileHeader.get(), 0, s64_HeaderSize);
         file.read((char *)m_pFileHeader.get(), s64_HeaderSize);
         file.close();
+
+        if (s64_KeepNextId > m_pFileHeader->GetNextId())
+        {
+            m_pFileHeader->SetNextId(s64_KeepNextId);
+        }
+
         return true;
     }
     return false;
+}
+
+INT64 CDataSave::ReadData(std::ifstream &file, char *pBuffer, INT64 s64MaxSize, INT64 s64StartPos) const
+{
+    file.seekg(0, std::ios::end);
+    const INT64 s64_FileSize = static_cast<INT64>(file.tellg());
+    if (s64_FileSize <= 0)
+    {
+        return 0;
+    }
+    const INT64 s64_DataLen = s64_FileSize - s64StartPos;
+    if (s64_DataLen <= 0)
+    {
+        return 0;
+    }
+    const INT64 s64_ReadSize = std::min<INT64>(s64_DataLen, s64MaxSize);
+    file.seekg(s64StartPos, std::ios::beg);
+    file.read(pBuffer, s64_ReadSize);
+    return static_cast<INT64>(file.gcount());
 }
 
 bool CDataSave::CheckAndTruncateOldData(const std::string &strFileName, bool bIsTrunateLast)
@@ -276,8 +400,9 @@ bool CDataSave::CheckAndTruncateOldData(const std::string &strFileName, bool bIs
             }
             else
             {
-                INT32 s32_ReadDataByte = static_cast<INT32>(s64_HeaderSize + s64_StoreCount * s64_SingleSTSize);
-                char * p_Buffer = new char[s32_ReadDataByte];
+                const INT32 s32_BufferSize = static_cast<INT32>(s64_HeaderSize + s64_StoreCount * s64_SingleSTSize);
+                char * p_Buffer = new char[s32_BufferSize];
+                INT32 s32_ActualDataLen = 0;
 
                 {
                     ifstream file_Data(strFileName, std::ios::binary);
@@ -287,10 +412,9 @@ bool CDataSave::CheckAndTruncateOldData(const std::string &strFileName, bool bIs
                         RELEASEIF(p_Buffer);
                         return false;
                     }
-                    file_Data.read(p_Buffer, s32_ReadDataByte);
+                    s32_ActualDataLen = ReadData(file_Data, p_Buffer, s32_BufferSize, s64_HeaderSize);
                 }
 
-                INT32 s32_ActualDataLen = s32_ReadDataByte - static_cast<INT32>(s64_HeaderSize);
                 INT32 s32_SkipBytes   = static_cast<INT32>(s64_StoreCount * s64_SingleSTSize * (100 - s64_KeepPercent) / 100);
 
                 if (s32_SkipBytes >= s32_ActualDataLen || s32_ActualDataLen <= 0)
@@ -302,7 +426,7 @@ bool CDataSave::CheckAndTruncateOldData(const std::string &strFileName, bool bIs
                 INT32 s32_KeepDataLen = s32_ActualDataLen - s32_SkipBytes;
 
                 char * p_tempBuffer = new char[s32_KeepDataLen];
-                memcpy(p_tempBuffer, p_Buffer + s64_HeaderSize + s32_SkipBytes, s32_KeepDataLen);
+                memcpy(p_tempBuffer, p_Buffer + s32_SkipBytes, s32_KeepDataLen);
 
                 std::string str_tempFileName = strFileName + ".tmp";
                 bool b_WriteOk = false;

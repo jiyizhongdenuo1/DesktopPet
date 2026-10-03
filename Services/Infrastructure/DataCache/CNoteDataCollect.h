@@ -56,4 +56,12 @@ public:
      * @return      缓冲区容量（字节）
      ************************************************************/
     INT32 GetBufferSize() const override;
+    BOOL DeleteNote(const NOTE_MODEL_ITEM &stModelItem) override;
+    void UpDateNoteData(const NOTE_MODEL_ITEM &stModelItem) override;
+
+    VOID UpDataNextID(INT64 s64NextID) override;
+    INT64 GetNextID() const override;
+private:
+    INT64               m_s64NextID = 1;
+    mutable std::mutex  m_mutexNextID;
 };

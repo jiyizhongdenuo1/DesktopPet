@@ -9,6 +9,7 @@ Item
     height: 1020
     property int currentClickIndex: -1
     property bool isAddNote: false
+    signal requestToggleTopWin()
 
     function addNote()
     {
@@ -51,7 +52,49 @@ Item
     NoteContextMenu
     {
         id: noteContextMenu
-        onRequestDelete: noteModel.DeleteNote(index)
+        onRequestDelete:
+        {
+            switch(action)
+            {
+                case NoteContextMenu.Action.TopWindow:
+                {
+                    requestToggleTopWin()
+                }
+                break;
+                case NoteContextMenu.Action.Category:
+                {
+
+                }
+                break;
+                case NoteContextMenu.Action.Remind:
+                {
+                    noteModel.SetNoteRemind(index, value)
+                }
+                break;
+                case NoteContextMenu.Action.SetLevel:
+                {
+                    noteModel.SetNoteLevel(index, value)
+                }
+                break;
+                case NoteContextMenu.Action.SetTimeSpan:
+                {
+
+                }
+                break;
+                case NoteContextMenu.Action.PinNote:
+                {
+
+                }
+                break;
+                case NoteContextMenu.Action.Delete:
+                {
+                    noteModel.DeleteNote(index)
+                }
+                break;
+                default:
+                    break;
+            }
+        }
     }
 
     Column

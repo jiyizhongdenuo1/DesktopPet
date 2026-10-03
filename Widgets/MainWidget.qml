@@ -5,6 +5,7 @@ import components
 
 Window
 {
+    id:mainWin
     width:  configModel ? configModel.windowWidth  : 500
     height: configModel ? configModel.windowHeight : 1020
     visible: true
@@ -12,6 +13,13 @@ Window
     color: "transparent"
     property int navWidth: 70
     property bool isSidebarCollapsed: false
+    property bool isTopWindow: false
+    function toggleTopWindow()
+    {
+        isTopWindow = !isTopWindow
+        mainWin.flags = isTopWindow ? (mainWin.flags | Qt.WindowStaysOnTopFlag) : (mainWin.flags | ~Qt.WindowStaysOnTopFlag)
+    }
+
     Rectangle
     {
         width: parent.width
@@ -76,6 +84,7 @@ Window
                 ListOfNotes
                 {
                     anchors.fill: parent
+                    onRequestToggleTopWin: mainWin.toggleTopWindow()
                 }
             }
         }

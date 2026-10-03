@@ -46,7 +46,12 @@ vector<INT32> CNoteBusiness::ProcessTip(NOTE_CACHE_SNAPSHOT parrCache)
     }
     for (size_t i = 0; i < parrCache->size(); ++i)
     {
-        const ST_NOTE_DATA &st_Note = (*parrCache)[i];
+        const auto &p_Note = (*parrCache)[i];
+        if (!p_Note)
+        {
+            continue;
+        }
+        const ST_NOTE_DATA &st_Note = *p_Note;
         if (ShouldSkip(st_Note))
         {
             continue;

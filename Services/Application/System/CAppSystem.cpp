@@ -16,24 +16,29 @@
 #include "DThread.h"
 #include "DDataCache.h"
 #include "CNoteDataCache.h"
+#include "CDataRWMgr.h"
+#include "INoteDataBuffer.h"
+#include "CNoteDataService.h"
 #include "CNoteApp.h"
+#include "DNoteCommon.h"
 
 using namespace std;
-CAppSystem *CAppSystem::m_pInstance = nullptr;
-CAppSystem *CAppSystem::GetInstance()
-{
-    if (!m_pInstance)
-    {
-        CAppSystem::m_pInstance  = new CAppSystem();
-    }
-    return m_pInstance;
-}
 
 class CAppSystemPrivate
 {
     friend class CAppSystem;
 public:
-    explicit CAppSystemPrivate()
+    explicit CAppSystemPrivate(shared_ptr<CDataRWMgr> pDataRWMgr,
+                               shared_ptr<INoteDataBuffer> pBuffer,
+                               shared_ptr<INoteDataBuffer> pRecycleBuffer,
+                               shared_ptr<CNoteDataCache> pCache,
+                               shared_ptr<CNoteDataService> pService)
+            : m_timeCompactStore(0)
+            , m_pDataRWMgr(std::move(pDataRWMgr))
+            , m_pBuffer(std::move(pBuffer))
+            , m_pRecycleBuffer(std::move(pRecycleBuffer))
+            , m_pCache(std::move(pCache))
+            , m_pService(std::move(pService))
     {
         m_vecpThread.reserve(E_THREAD_MAX);
         m_vecpThreadHanders.reserve(E_THREAD_MAX);
@@ -43,16 +48,29 @@ private:
     vector<shared_ptr<CThread>>                 m_vecpThread;
     vector<shared_ptr<CThreadHandler>>          m_vecpThreadHanders;
     unique_ptr<CNoteApp>                        m_pNoteApp;
+    time_t                                      m_timeCompactStore;
+    shared_ptr<CDataRWMgr>                      m_pDataRWMgr;
+    shared_ptr<INoteDataBuffer>                 m_pBuffer;
+    shared_ptr<INoteDataBuffer>                 m_pRecycleBuffer;
+    shared_ptr<CNoteDataCache>                  m_pCache;
+    shared_ptr<CNoteDataService>                m_pService;
 };
 
-CAppSystem::CAppSystem()
-    : d_ptr(make_unique<CAppSystemPrivate>())
+CAppSystem::CAppSystem(shared_ptr<CDataRWMgr> pDataRWMgr,
+                       shared_ptr<INoteDataBuffer> pBuffer,
+                       shared_ptr<INoteDataBuffer> pRecycleBuffer,
+                       shared_ptr<CNoteDataCache> pCache,
+                       shared_ptr<CNoteDataService> pService)
+    : d_ptr(make_unique<CAppSystemPrivate>(std::move(pDataRWMgr), std::move(pBuffer),
+                                           std::move(pRecycleBuffer), std::move(pCache),
+                                           std::move(pService)))
 {
     IniAppFrame();
 }
 
 CAppSystem::~CAppSystem()
 {
+    StopThread();
 }
 
 void CAppSystem::SetThreadHandler(E_THREAD_ID eThreadId, CThreadHandler *pThreadHandler)
@@ -77,12 +95,14 @@ void CAppSystem::AddSaveDataTask()
     if (pThreadHandler)
     {
         pThreadHandler->AddTask(DataSaveFucName::MSG_DATASAVE_NOTE, {});
+
+        const time_t time_Now= time(nullptr);
+        if (time_Now - d_ptr->m_timeCompactStore >= CSpaceTime::COMPACT_TIME_SPACE)
+        {
+            pThreadHandler->AddTask(DataSaveFucName::MSG_COMPACT_FILE, {});
+        }
     }
 
-}
-
-void CAppSystem::SaveDataSeconded()
-{
 }
 
 void CAppSystem::IniAppFrame()
@@ -108,7 +128,8 @@ INT32 CAppSystem::DoSecEvent()
 
 void CAppSystem::CreateThread()
 {
-    CThreadFactory factory;
+    CThreadFactory factory(d_ptr->m_pDataRWMgr, d_ptr->m_pBuffer,
+                           d_ptr->m_pRecycleBuffer, d_ptr->m_pCache, d_ptr->m_pService);
 
     d_ptr->m_vecpThreadHanders = factory.ReleaseHandlers();
     d_ptr->m_vecpThread = factory.ReleaseThreads();
@@ -131,6 +152,12 @@ void CAppSystem::StartThread()
     }
 }
 
+void CAppSystem::StopThread()
+{
+    d_ptr->m_vecpThread.clear();
+    d_ptr->m_vecpThreadHanders.clear();
+}
+
 void CAppSystem::CreateModule()
 {
     if (!d_ptr->m_pNoteApp)
@@ -150,5 +177,8 @@ void CAppSystem::InitSystem()
 
 void CAppSystem::SetCache(std::shared_ptr<IDataCache> pCache)
 {
-    d_ptr->m_pNoteApp->SetCache(pCache);
+    if (d_ptr->m_pNoteApp)
+    {
+        d_ptr->m_pNoteApp->SetCache(pCache);
+    }
 }

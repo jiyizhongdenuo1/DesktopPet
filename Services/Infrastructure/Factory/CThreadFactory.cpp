@@ -10,10 +10,23 @@
 #include "CLogThreadHandler.h"
 #include "CSystemThreadHandler.h"
 #include "CDynsDataSaveThreadHandler.h"
+#include "CDataRWMgr.h"
+#include "INoteDataBuffer.h"
+#include "CNoteDataCache.h"
+#include "CNoteDataService.h"
 #include "GlobalEnums.h"
 
 using namespace std;
-CThreadFactory::CThreadFactory()
+CThreadFactory::CThreadFactory(shared_ptr<CDataRWMgr> pDataRWMgr,
+                               shared_ptr<INoteDataBuffer> pBuffer,
+                               shared_ptr<INoteDataBuffer> pRecycleBuffer,
+                               shared_ptr<CNoteDataCache> pCache,
+                               shared_ptr<CNoteDataService> pService)
+    : m_pDataRWMgr(std::move(pDataRWMgr))
+    , m_pBuffer(std::move(pBuffer))
+    , m_pRecycleBuffer(std::move(pRecycleBuffer))
+    , m_pCache(std::move(pCache))
+    , m_pService(std::move(pService))
 {
     InitInstances();
 }
@@ -75,7 +88,8 @@ void CThreadFactory::InitThreadHanders()
     m_vecpThreadHanders.resize(E_THREAD_MAX);
     m_vecpThreadHanders[E_THREAD_LOG] = std::make_shared<CLogThreadHandler>();
     m_vecpThreadHanders[E_THREAD_SYSTEM] = std::make_shared<CSystemThreadHandler>();
-    m_vecpThreadHanders[E_THREAD_DYNC_DATA] = std::make_shared<CDynsDataSaveThreadHandler>();
+    m_vecpThreadHanders[E_THREAD_DYNC_DATA] = std::make_shared<CDynsDataSaveThreadHandler>(
+        m_pDataRWMgr, m_pBuffer, m_pRecycleBuffer, m_pCache, m_pService);
 }
 
 void CThreadFactory::ThreadModule()

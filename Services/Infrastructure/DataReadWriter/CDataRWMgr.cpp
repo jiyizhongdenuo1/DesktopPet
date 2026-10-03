@@ -21,34 +21,44 @@ class CDataRWMgrPrivate
 {
     friend class CDataRWMgr;
 public:
-    explicit CDataRWMgrPrivate(std::shared_ptr<CDataSave> dataSaver, const string& strDataPath);
+    explicit CDataRWMgrPrivate(shared_ptr<CDataSave> dataSaver, shared_ptr<CDataSave> recycle, const string& strDataPath);
     ~CDataRWMgrPrivate() = default;
 private:
-    std::shared_ptr<CDataSave> m_pDataSave;
-    std::string m_strNoteFileName;
+    shared_ptr<CDataSave> m_pDataSave;
+    shared_ptr<CDataSave> m_pRecycleOperater;
+
+    string m_strNoteFileName;
+    string m_strRecycleFileName;
 };
 
-CDataRWMgrPrivate::CDataRWMgrPrivate(std::shared_ptr<CDataSave> pDataSaver, const string& strDataPath)
+CDataRWMgrPrivate::CDataRWMgrPrivate(shared_ptr<CDataSave> pDataSaver, shared_ptr<CDataSave> recycle, const string& strDataPath)
     : m_pDataSave(pDataSaver)
+    , m_pRecycleOperater(recycle)
 {
-    if (!m_pDataSave)
+    if (!m_pDataSave || !m_pRecycleOperater)
     {
-        throw std::runtime_error("CDataRWMgr: 注入的 DataSave 实例无效");
+        throw runtime_error("CDataRWMgr: 注入的 DataSave 实例无效");
     }
     m_strNoteFileName = strDataPath;
     if (!m_strNoteFileName.empty() && m_strNoteFileName.back() != '/')
     {
         m_strNoteFileName += '/';
     }
+    m_strRecycleFileName = m_strNoteFileName + DSaveDefine::RECYCLE_FILE_NAME;
     m_strNoteFileName += DSaveDefine::NOTE_FILE_NAME;
+
 }
 
-CDataRWMgr::CDataRWMgr(std::shared_ptr<CDataSave> pDataSaver, const std::string& strDataPath)
-    : d_ptr(std::make_unique<CDataRWMgrPrivate>(pDataSaver, strDataPath))
+CDataRWMgr::CDataRWMgr(shared_ptr<CDataSave> pDataSaver, shared_ptr<CDataSave> recycle, const string& strDataPath)
+    : d_ptr(make_unique<CDataRWMgrPrivate>(pDataSaver, recycle, strDataPath))
 {
-    if (d_ptr->m_pDataSave && !std::filesystem::exists(d_ptr->m_strNoteFileName))
+    if (d_ptr->m_pDataSave && !filesystem::exists(d_ptr->m_strNoteFileName))
     {
         d_ptr->m_pDataSave->CreateNewFile(d_ptr->m_strNoteFileName);
+    }
+    if (d_ptr->m_pRecycleOperater && !filesystem::exists(d_ptr->m_strRecycleFileName))
+    {
+        d_ptr->m_pRecycleOperater->CreateNewFile(d_ptr->m_strRecycleFileName);
     }
 }
 
@@ -56,7 +66,7 @@ CDataRWMgr::~CDataRWMgr() = default;
 
 void CDataRWMgr::WriteToFile(const char *pData, INT32 s32Size) const
 {
-    if (!pData || s32Size <= 0)
+    if (!pData || s32Size <= 0 || !d_ptr->m_pDataSave)
     {
         return;
     }
@@ -67,39 +77,64 @@ void CDataRWMgr::WriteToFile(const char *pData, INT32 s32Size) const
     }
 }
 
-int CDataRWMgr::AddOneNoteData(const char *pData, INT32 s32Size)
+int CDataRWMgr::AddOneNoteData(const char *pData, INT32 s32Size, BOOL bIsDeleteData)
 {
-    if (!pData || s32Size <= 0)
+    if (!pData || s32Size <= 0 || !d_ptr->m_pDataSave || !d_ptr->m_pRecycleOperater)
     {
         return FALSE;
     }
-    INT64 s64_Offset = d_ptr->m_pDataSave->GetFileLastCount() * d_ptr->m_pDataSave->GetSingleSTSize();
+    shared_ptr<CDataSave> p_Saver = bIsDeleteData ? d_ptr->m_pRecycleOperater : d_ptr->m_pDataSave;
+    INT64 s64_Offset = p_Saver->GetFileLastCount() * p_Saver->GetSingleSTSize();
 
-    if (!d_ptr->m_pDataSave->Write2FileData(d_ptr->m_strNoteFileName, pData, s32Size, s64_Offset))
+    string str_Filename = bIsDeleteData ? d_ptr->m_strRecycleFileName : d_ptr->m_strNoteFileName;
+    if (!p_Saver->Write2FileData(str_Filename, pData, s32Size, s64_Offset))
     {
-        qDebug() << "AddOneNoteData failed";
+        qDebug() << (bIsDeleteData ? "AddRecycleData failed" : "AddOneNoteData failed");
     }
     return TRUE;
 }
 
-void CDataRWMgr::ReadFromFile(char *pBuffer, INT32 s32BufferSize, INT32 &s32DataSize) const
+void CDataRWMgr::ReadFromFile(char *pBuffer, INT32 s32BufferSize, INT32 &s32DataSize, BOOL bIsDeleteData) const
 {
     s32DataSize = 0;
 
-    if (!pBuffer || s32BufferSize <= 0)
+    if (!pBuffer || s32BufferSize <= 0 || !d_ptr->m_pDataSave || !d_ptr->m_pRecycleOperater)
     {
         return;
     }
 
     memset(pBuffer, 0, s32BufferSize);
 
-    INT64 s64_HeaderSize = d_ptr->m_pDataSave ? d_ptr->m_pDataSave->GetHeaderSize() : 0;
+    shared_ptr<CDataSave> p_Saver = bIsDeleteData ? d_ptr->m_pRecycleOperater : d_ptr->m_pDataSave;
+
+    INT64 s64_HeaderSize = p_Saver ? p_Saver->GetHeaderSize() : 0;
     if (s64_HeaderSize < 0)
     {
         s64_HeaderSize = 0;
     }
 
+    const string &str_Filename = bIsDeleteData ? d_ptr->m_strRecycleFileName : d_ptr->m_strNoteFileName;
+
     INT32 s32_ReadStartPos = static_cast<INT32>(s64_HeaderSize);
     s32DataSize = s32BufferSize;
-    d_ptr->m_pDataSave->ReadFileData(d_ptr->m_strNoteFileName, pBuffer, s32DataSize, s32_ReadStartPos);
+    p_Saver->ReadFileData(str_Filename, pBuffer, s32DataSize, s32_ReadStartPos);
+}
+
+bool CDataRWMgr::UpdateNextId(INT64 s64NextId)
+{
+    if (!d_ptr->m_pDataSave)
+    {
+        return FALSE;
+    }
+    d_ptr->m_pDataSave->SetNextId(s64NextId);
+    return TRUE;
+}
+
+void CDataRWMgr::CompactNoteFile()
+{
+    if (!d_ptr->m_pDataSave)
+    {
+        return ;
+    }
+    d_ptr->m_pDataSave->CompactNoteFile(d_ptr->m_strNoteFileName);
 }

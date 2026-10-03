@@ -17,24 +17,31 @@ class CThread;
 class CThreadHandler;
 class CAppSystemPrivate;
 class IDataCache;
+class CDataRWMgr;
+class CNoteDataCache;
+class CNoteDataService;
+class INoteDataBuffer;
 class CAppSystem
 {
 public:
     /** ***********************************************************
      * @brief       构造函数
+     * @param[in]   pDataRWMgr     数据读写管理器
+     * @param[in]   pBuffer        笔记数据缓冲区
+     * @param[in]   pRecycleBuffer 回收站数据缓冲区
+     * @param[in]   pCache         笔记缓存
+     * @param[in]   pService       笔记数据服务
      ************************************************************/
-    explicit CAppSystem();
+    explicit CAppSystem(std::shared_ptr<CDataRWMgr>       pDataRWMgr,
+                        std::shared_ptr<INoteDataBuffer>  pBuffer,
+                        std::shared_ptr<INoteDataBuffer>  pRecycleBuffer,
+                        std::shared_ptr<CNoteDataCache>   pCache,
+                        std::shared_ptr<CNoteDataService> pService);
 
     /** ***********************************************************
      * @brief       析构函数
      ************************************************************/
     ~CAppSystem();
-
-    /** ***********************************************************
-     * @brief       获取单例实例
-     * @return      CAppSystem 指针，首次调用时自动创建
-     ************************************************************/
-    static CAppSystem *GetInstance();
 
     /** ***********************************************************
      * @brief       初始化应用框架：创建线程、注册回调、启动线程、初始化模块
@@ -75,13 +82,6 @@ private:
     void AddSaveDataTask();
 
     /** ***********************************************************
-     * @brief       每秒驱动的数据保存相关逻辑（预留扩展点）
-     * @param[in]   无
-     * @return      void
-     ************************************************************/
-    void SaveDataSeconded();
-
-    /** ***********************************************************
      * @brief       通过工厂批量创建线程与 Handler
      * @param[in]   无
      * @return      void
@@ -103,6 +103,15 @@ private:
     void StartThread();
 
     /** ***********************************************************
+     * @brief       停止并回收所有线程与 Handler
+     * @param[in]   无
+     * @return      void
+     * @note        先释放线程（触发 CThread 析构等待线程退出），
+     *              再释放 Handler，避免 Handler 析构时等待仍在运行的线程
+     ************************************************************/
+    void StopThread();
+
+    /** ***********************************************************
      * @brief       创建业务模块实例（预留扩展点）
      * @param[in]   无
      * @return      void
@@ -117,8 +126,5 @@ private:
     void InitSystem();
 
 public:
-    static CAppSystem                   *m_pInstance;
     std::unique_ptr<CAppSystemPrivate>  d_ptr;
 };
-
-#define g_CAppSystem CAppSystem::GetInstance()

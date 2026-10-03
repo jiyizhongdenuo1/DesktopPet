@@ -15,16 +15,18 @@
 
 typedef  struct st_NoteModelItem
 {
-    INT64       m_s64NoteId;
-    E_NOTE_EVENT_WAKEUP_LEVEL m_eNoteLevel;
-    E_NOTE_TIME_SPAN_TYPE      m_eTimeSpanType;
-    INT64       m_s64RemindTime;
-    INT64       m_s64WriteTime;
-    INT64       m_s64ModifyTime;
-    E_NOTE_REMIND_FREQUENCY   m_eRemindFrequency;
-    E_NOTE_TYPE               m_eNoteType;
-    BOOL        m_bCompleted;
-    BOOL        m_bDeleted;
+    INT64                           m_s64NoteId;
+    E_NOTE_EVENT_WAKEUP_LEVEL       m_eNoteLevel;
+    E_NOTE_TIME_SPAN_TYPE           m_eTimeSpanType;
+    INT64                           m_s64RemindTime;
+    INT64                           m_s64WriteTime;
+    INT64                           m_s64ModifyTime;
+    E_NOTE_REMIND_FREQUENCY         m_eRemindFrequency;
+    E_NOTE_TYPE                     m_eNoteType;
+    BOOL                            m_bIsTop;                   ///< 置顶标记 (TRUE: 已置顶 / FALSE: 普通)
+    INT32                           m_s32TopOrder;
+    BOOL                            m_bCompleted;
+    BOOL                            m_bDeleted;
     std::string m_strContent;
     st_NoteModelItem()
         : m_s64NoteId(0)
@@ -35,6 +37,8 @@ typedef  struct st_NoteModelItem
         , m_s64ModifyTime(0)
         , m_eRemindFrequency(E_NOTE_REMIND_NONE)
         , m_eNoteType(E_NOTE_TYPE_ALL)
+        , m_bIsTop(FALSE)
+        , m_s32TopOrder(-1)
         , m_bCompleted(FALSE)
         , m_bDeleted(FALSE) {}
 }NOTE_MODEL_ITEM;

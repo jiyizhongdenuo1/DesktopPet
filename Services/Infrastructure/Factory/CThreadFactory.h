@@ -8,10 +8,16 @@
 
 #pragma once
 
+#include <memory>
+
 #include "IFactory.h"
 #include "CThread.h"
 
 class CThreadHandler;
+class CDataRWMgr;
+class CNoteDataCache;
+class CNoteDataService;
+class INoteDataBuffer;
 
 /**
  * @brief 线程工厂类
@@ -22,8 +28,17 @@ class DLL_EXPORT CThreadFactory : public IFactory<CThread>
 public:
     /**
      * @brief 构造函数
+     * @param pDataRWMgr     数据读写管理器（注入给数据保存 Handler）
+     * @param pBuffer        笔记数据缓冲区（注入给数据保存 Handler）
+     * @param pRecycleBuffer 回收站数据缓冲区（注入给数据保存 Handler）
+     * @param pCache         笔记缓存（注入给数据保存 Handler）
+     * @param pService       笔记数据服务（注入给数据保存 Handler）
      */
-    explicit CThreadFactory();
+    explicit CThreadFactory(std::shared_ptr<CDataRWMgr>       pDataRWMgr,
+                            std::shared_ptr<INoteDataBuffer>  pBuffer,
+                            std::shared_ptr<INoteDataBuffer>  pRecycleBuffer,
+                            std::shared_ptr<CNoteDataCache>   pCache,
+                            std::shared_ptr<CNoteDataService> pService);
 
     /**
      * @brief 析构函数
@@ -78,4 +93,9 @@ private:
     std::vector<std::shared_ptr<CThread>>                   m_vecpThread;
     std::vector<std::shared_ptr<CThreadHandler>>            m_vecpThreadHanders;
 
+    std::shared_ptr<CDataRWMgr>                             m_pDataRWMgr;
+    std::shared_ptr<INoteDataBuffer>                        m_pBuffer;
+    std::shared_ptr<INoteDataBuffer>                        m_pRecycleBuffer;
+    std::shared_ptr<CNoteDataCache>                         m_pCache;
+    std::shared_ptr<CNoteDataService>                       m_pService;
 };

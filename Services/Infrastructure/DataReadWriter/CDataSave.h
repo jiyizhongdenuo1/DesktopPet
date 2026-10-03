@@ -12,6 +12,7 @@
 #include <string>
 #include <shared_mutex>
 #include <memory>
+#include <fstream>
 #include "DServiceBase.h"
 
 typedef struct st_NoteFileHeader : public st_FileHeaderBase
@@ -89,10 +90,14 @@ public:
 
     INT64 GetSingleSTSize() const;
 
+    bool SetNextId(INT64 s64NextId);
+
+    bool CompactNoteFile(const std::string &strFileName);
 private:
     bool IsOverFileStoreLimit(const std::string &strFileName);
     bool UpdateNoteFileHeader(const std::string &strFileName, st_FileHeaderBase *pFileHeader);
     bool ReadFileHeader(const std::string &strFileName);
+    INT64 ReadData(std::ifstream &file, char *pBuffer, INT64 s64MaxSize, INT64 s64StartPos) const;
 
 private:
     std::shared_mutex m_mutexNote;

@@ -78,6 +78,7 @@ public:
         {
             return 0;
         }
+        memset(pcBuffer, 0, s32GetSize);
 
         const INT64 s64Read  = m_atomReadCount.load(std::memory_order_relaxed);
         const INT64 s64Write = m_atomWriteCount.load(std::memory_order_acquire);
@@ -91,6 +92,7 @@ public:
         const INT32 s32ReadSize = static_cast<INT32>(std::min<INT64>(s32GetSize, s64Avail));
         const INT32 s32Pos      = static_cast<INT32>(s64Read % m_s32BufferSize);
         const INT32 s32First    = std::min(s32ReadSize, m_s32BufferSize - s32Pos);
+
 
         memcpy(pcBuffer, m_cBuffer.get() + s32Pos, s32First);
         if (s32First < s32ReadSize)

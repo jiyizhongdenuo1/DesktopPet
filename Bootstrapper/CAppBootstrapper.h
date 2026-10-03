@@ -22,6 +22,7 @@ class CNoteBusiness;
 class CMainNoteListViewModel;
 class CSidebarModel;
 class CMainConfigModel;
+class CAppSystem;
 
 class CAppBootstrapper
 {
@@ -73,6 +74,7 @@ private:
 
     std::shared_ptr<CNoteDataCache>         m_pNoteCache;
     std::shared_ptr<INoteDataBuffer>        m_pNoteCollect;
+    std::shared_ptr<INoteDataBuffer>        m_pRecycleCollect;
     std::shared_ptr<CDataRWMgr>             m_pDataSaverMgr;
     std::shared_ptr<CNoteDataService>       m_pNoteService;
     // std::shared_ptr<CNoteBusiness>          m_pNoteBusiness;
@@ -80,4 +82,6 @@ private:
     std::unique_ptr<CMainNoteListViewModel> m_pNoteModel;
     std::unique_ptr<CSidebarModel>          m_pSidebarModel;
     std::unique_ptr<CMainConfigModel>        m_pConfigModel;
+
+    std::unique_ptr<CAppSystem>             m_pAppSystem;
 };

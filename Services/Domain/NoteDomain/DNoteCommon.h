@@ -18,7 +18,10 @@ namespace DDataCache
 {
     constexpr static INT32 MAX_CACHE_SIZE = 500;
 }
-
+namespace CSpaceTime
+{
+    constexpr static INT32 COMPACT_TIME_SPACE = 12 * 60 * 60;
+}
 enum E_NOTE_EVENT_WAKEUP_LEVEL
 {
     E_NOTE_EVENT_WAKEUP_LEVEL_IMPORTANT_URGENT = 0, ///< 第一象限：重要且紧急（立即执行）

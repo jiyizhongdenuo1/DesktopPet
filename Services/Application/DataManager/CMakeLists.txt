@@ -2,8 +2,6 @@
 add_library(DataManager SHARED
         CNoteDataService.cpp
         CNoteDataService.h
-        CServiceLocator.cpp
-        CServiceLocator.h
 )
 
 target_link_libraries(DataManager PRIVATE

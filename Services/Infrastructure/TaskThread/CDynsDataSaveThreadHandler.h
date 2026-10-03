@@ -20,13 +20,21 @@ typedef struct st_DataSaveEvent
 } ST_DATA_SAVE_EVENT;
 
 class CDataRWMgr;
+class CNoteDataCache;
+class CNoteDataService;
+class INoteDataBuffer;
 class CDynsDataSaveThreadHandlerPrivate;
 
 class DLL_EXPORT CDynsDataSaveThreadHandler : public CThreadHandler
 {
 public:
 
-    explicit CDynsDataSaveThreadHandler();
+    explicit CDynsDataSaveThreadHandler(
+        std::shared_ptr<CDataRWMgr>       pDataRWMgr,
+        std::shared_ptr<INoteDataBuffer>  pBuffer,
+        std::shared_ptr<INoteDataBuffer>  pRecycleBuffer,
+        std::shared_ptr<CNoteDataCache>   pCache,
+        std::shared_ptr<CNoteDataService> pService);
     ~CDynsDataSaveThreadHandler();
 
     /** ***********************************************************
@@ -54,7 +62,9 @@ public:
     void SaveAllData();
 
 private:
+    void FuncSaveNoteData(ST_DATA_SAVE_EVENT &event);
+    void FuncCompactData(ST_DATA_SAVE_EVENT &event);
+    void FuncReadNoteData(ST_DATA_SAVE_EVENT &event);
+
     std::unique_ptr<CDynsDataSaveThreadHandlerPrivate> d_ptr;
 };
-
-typedef void (*DATASAVE_FUNC)(std::shared_ptr<CDataRWMgr> pDataRWMgr, ST_DATA_SAVE_EVENT &event);

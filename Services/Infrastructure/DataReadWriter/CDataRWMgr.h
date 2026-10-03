@@ -31,7 +31,7 @@ public:
      *              数据路径通常由 CConfigManager::GetDataPath() 提供
      *              内部使用拷贝语义（shared_ptr），调用者仍持有有效引用
      ************************************************************/
-    explicit CDataRWMgr(std::shared_ptr<CDataSave> pDataSaver, const std::string& strDataPath = "");
+    explicit CDataRWMgr(std::shared_ptr<CDataSave> pDataSaver, std::shared_ptr<CDataSave> recycle, const std::string& strDataPath = "");
 
     ~CDataRWMgr();
 
@@ -44,7 +44,7 @@ public:
      ************************************************************/
     void WriteToFile(const char *pData, INT32 s32Size) const;
 
-    BOOL AddOneNoteData(const char *pData, INT32 s32Size);
+    BOOL AddOneNoteData(const char *pData, INT32 s32Size, BOOL bIsDeleteData = FALSE);
 
     /** ***********************************************************
      * @brief       从文件读取原始字节数据（纯IO操作）
@@ -54,7 +54,9 @@ public:
      * @return      void
      * @note        只负责字节级读写，不进行结构体转换；线程安全
      ************************************************************/
-    void ReadFromFile(char *pBuffer, INT32 s32BufferSize, INT32 &s32DataSize) const;
+    void ReadFromFile(char *pBuffer, INT32 s32BufferSize, INT32 &s32DataSize, BOOL bIsDeleteData = FALSE) const;
+    bool UpdateNextId(INT64 s64NextId);
+    void CompactNoteFile();
 private:
     std::unique_ptr<CDataRWMgrPrivate> d_ptr;
 };

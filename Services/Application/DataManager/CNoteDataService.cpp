@@ -15,9 +15,11 @@
 using namespace std;
 
 CNoteDataService::CNoteDataService(std::shared_ptr<CNoteDataCache> pCache,
-                                   std::shared_ptr<INoteDataBuffer> pBuffer)
+                                   std::shared_ptr<INoteDataBuffer> pBuffer,
+                                   std::shared_ptr<INoteDataBuffer> pRecycleBuffer)
     : m_pCache(std::move(pCache))
     , m_pBuffer(std::move(pBuffer))
+    , m_pRecycleBuffer(std::move(pRecycleBuffer))
 {
 }
 
@@ -25,7 +27,6 @@ CNoteDataService::~CNoteDataService() = default;
 
 void CNoteDataService::AddNote(const NOTE_MODEL_ITEM &stModelItem)
 {
-
     if (m_pBuffer)
     {
         m_pBuffer->AppendData(stModelItem);
@@ -45,7 +46,7 @@ int CNoteDataService::LoadFromBuffer(char *pBuffer, INT32 s32BufferSize)
     if (m_pCache)
     {
         INT32 s32_PutCount = m_pCache->PutBuffer2CacheData(pBuffer, s32BufferSize);
-        if (s32_PutCount > 0 && m_NoteDataCallback)
+        if (s32_PutCount > 0)
         {
             NotifyDataLoaded();
         }
@@ -54,9 +55,51 @@ int CNoteDataService::LoadFromBuffer(char *pBuffer, INT32 s32BufferSize)
     return 0;
 }
 
+int CNoteDataService::LoadRecycleFromBuffer(char *pBuffer, INT32 s32BufferSize)
+{
+    if (m_pCache)
+    {
+        return m_pCache->PutBuffer2RecycleData(pBuffer, s32BufferSize);
+    }
+    return 0;
+}
+
 VOID CNoteDataService::RegisterNoteModelDataLoadCallback(CALLBACK_NOTEDATALOAD NoteDataCallback)
 {
     m_NoteDataCallback = NoteDataCallback;
+}
+
+VOID CNoteDataService::RegisterNoteChangeCallback(CACHE_CHANGE_CALLBACK ChangeCallback)
+{
+    if (m_pCache)
+    {
+        m_pCache->SetChangeCallback(std::move(ChangeCallback));
+    }
+}
+
+BOOL CNoteDataService::DeleteNote(const NOTE_MODEL_ITEM &stModelItem)
+{
+    if (!m_pRecycleBuffer)
+    {
+        return FALSE;
+    }
+    m_pRecycleBuffer->AppendData(stModelItem);
+
+    if (m_pCache)
+    {
+        ST_NOTE_DATA stNoteData;
+        ConvertUIToDomain(stModelItem, stNoteData);
+        m_pCache->UpdateNoteDataCache(stNoteData);
+    }
+    return TRUE;
+}
+
+VOID CNoteDataService::UpDataNextID(INT64 s64NextID)
+{
+    if (m_pBuffer)
+    {
+        m_pBuffer->UpDataNextID(s64NextID);
+    }
 }
 
 void CNoteDataService::ConvertUIToDomain(const NOTE_MODEL_ITEM &stModelItem, ST_NOTE_DATA &stNoteData)
@@ -93,5 +136,8 @@ void CNoteDataService::ConvertUIToDomain(const NOTE_MODEL_ITEM &stModelItem, ST_
 
 void CNoteDataService::NotifyDataLoaded()
 {
-    m_NoteDataCallback(m_pCache->GetSnapshot());
+    if (m_pCache && m_NoteDataCallback)
+    {
+        m_NoteDataCallback(m_pCache->GetSnapshot());
+    }
 }

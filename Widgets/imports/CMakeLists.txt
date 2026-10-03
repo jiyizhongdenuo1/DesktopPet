@@ -3,6 +3,7 @@ qt6_add_qml_module(imports
         VERSION 1.0
         NO_PLUGIN
         STATIC
+        OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/components
 
         QML_FILES
             StyledButton.qml

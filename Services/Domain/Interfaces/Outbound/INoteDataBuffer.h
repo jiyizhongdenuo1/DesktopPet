@@ -47,4 +47,11 @@ public:
      * @return      缓冲区容量（字节）
      ************************************************************/
     virtual INT32 GetBufferSize() const = 0;
+
+    virtual BOOL DeleteNote(const NOTE_MODEL_ITEM &stModelItem) {return FALSE;}
+
+    virtual VOID UpDataNextID(INT64 s64NextID){}
+    virtual INT64 GetNextID() const{return 0;};
+    virtual void UpDateNoteData(const NOTE_MODEL_ITEM &stModelItem){}
+
 };

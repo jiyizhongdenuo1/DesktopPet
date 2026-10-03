@@ -23,7 +23,7 @@
 #include "CNoteDataService.h"
 #include "CDataSave.h"
 #include "CDataRWMgr.h"
-#include "CServiceLocator.h"
+#include "CAppSystem.h"
 // #include "CNoteBusiness.h"
 #include "CMainNoteListViewModel.h"
 #include "CSidebarModel.h"
@@ -68,15 +68,15 @@ void CAppBootstrapper::InitDataLayer()
     m_pNoteCollect = make_shared<CNoteDataCollect>(
         NDataManager::NOTE_BUFFER_ITEM_COUNT_MAX * static_cast<INT32>(sizeof(ST_NOTE_DATA)));
 
-    auto pDataSave = make_shared<CDataSave>(make_unique<NOTE_FILE_HEADER>());
-    m_pDataSaverMgr = make_shared<CDataRWMgr>(pDataSave, g_ConfigManager->GetDataPath());
+    m_pRecycleCollect = make_shared<CNoteDataCollect>(
+        NDataManager::NOTE_BUFFER_ITEM_COUNT_MAX * static_cast<INT32>(sizeof(ST_NOTE_DATA)));
 
-    m_pNoteService = make_shared<CNoteDataService>(m_pNoteCache, m_pNoteCollect);
+    auto pDataSave      = make_shared<CDataSave>(make_unique<NOTE_FILE_HEADER>());
+    auto pRecycleSave   = make_shared<CDataSave>(make_unique<NOTE_FILE_HEADER>());
 
-    g_ServiceLocator.RegisterNoteCache(m_pNoteCache);
-    g_ServiceLocator.RegisterNoteCollect(m_pNoteCollect);
-    g_ServiceLocator.RegisterDataSaver(m_pDataSaverMgr);
-    g_ServiceLocator.RegisterNoteService(m_pNoteService);
+    m_pDataSaverMgr     = make_shared<CDataRWMgr>(pDataSave, pRecycleSave, g_ConfigManager->GetDataPath());
+
+    m_pNoteService      = make_shared<CNoteDataService>(m_pNoteCache, m_pNoteCollect, m_pRecycleCollect);
 
     cout << "数据层装配完成" << endl;
 }
@@ -93,6 +93,7 @@ void CAppBootstrapper::InitViewModels()
     m_pEngine = make_unique<QQmlApplicationEngine>();
 
     m_pNoteModel = make_unique<CMainNoteListViewModel>();
+    m_pNoteModel->Init(m_pNoteService);
     m_pEngine->rootContext()->setContextProperty("noteModel", m_pNoteModel.get());
 
     m_pSidebarModel = make_unique<CSidebarModel>();
@@ -142,13 +143,16 @@ void CAppBootstrapper::InitUiCallbacks()
 
 void CAppBootstrapper::InitThreadSystem()
 {
-    g_CAppSystem;
+    m_pAppSystem = make_unique<CAppSystem>(m_pDataSaverMgr, m_pNoteCollect, m_pRecycleCollect,
+                                           m_pNoteCache, m_pNoteService);
 }
 
 void CAppBootstrapper::RegisterSchedules()
 {
-    g_CAppSystem->SetCache(m_pNoteCache);
-
+    if (m_pAppSystem)
+    {
+        m_pAppSystem->SetCache(m_pNoteCache);
+    }
 }
 
 void CAppBootstrapper::Run()

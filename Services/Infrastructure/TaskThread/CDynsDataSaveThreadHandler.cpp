@@ -9,6 +9,7 @@
 #include <memory>
 #include <queue>
 #include <map>
+#include <functional>
 #include <iostream>
 #include <QMutex>
 #include "CDataRWMgr.h"
@@ -20,7 +21,6 @@
 #include <unistd.h>
 #endif
 
-#include "CServiceLocator.h"
 #include "INoteDataBuffer.h"
 #include "DSaveDefine.h"
 #include "CNoteDataCache.h"
@@ -31,21 +31,34 @@
 
 using namespace std;
 
-static void func_SaveNoteData(shared_ptr<CDataRWMgr> pDataSaveRWMgr, ST_DATA_SAVE_EVENT &event)
+void CDynsDataSaveThreadHandler::FuncSaveNoteData(ST_DATA_SAVE_EVENT &event)
 {
-    auto p_Buffer = g_ServiceLocator.GetNoteCollect();
-    if (!p_Buffer || !p_Buffer->HasData())
+    (void)event;
+
+    if (!d_ptr->m_pDataSaveRWMgr)
+    {
+        return ;
+    }
+    if (!d_ptr->m_pBuffer)
+    {
+        return;
+    }
+
+    // ★ nextId 先更新到内存 header（后面写文件时一并落盘）
+    d_ptr->m_pDataSaveRWMgr->UpdateNextId(d_ptr->m_pBuffer->GetNextID());
+
+    if (!d_ptr->m_pBuffer->HasData())
     {
         return;
     }
 
     INT32 s32_SaveNoteDataLimit = DSaveDefine::SINGLE_SAVE_NOTE_DATA_COUNT * sizeof(st_NoteData);
     char *pNoteData = new char[s32_SaveNoteDataLimit];
-    INT32 s32_ReadSize = p_Buffer->ReadBuffer(s32_SaveNoteDataLimit, pNoteData);
+    INT32 s32_ReadSize = d_ptr->m_pBuffer->ReadBuffer(s32_SaveNoteDataLimit, pNoteData);
 
     if (s32_ReadSize > 0)
     {
-        auto p_Cache = g_ServiceLocator.GetNoteCache();
+        auto p_Cache = d_ptr->m_pCache;
         if (p_Cache)
         {
             const INT32 s32Count = s32_ReadSize / static_cast<INT32>(sizeof(ST_NOTE_DATA));
@@ -53,17 +66,51 @@ static void func_SaveNoteData(shared_ptr<CDataRWMgr> pDataSaveRWMgr, ST_DATA_SAV
             p_Cache->AppendNoteData(pArrNote, s32Count);      // 整批只发布一次快照
         }
 
-        pDataSaveRWMgr->AddOneNoteData(pNoteData, s32_ReadSize);
+        d_ptr->m_pDataSaveRWMgr->AddOneNoteData(pNoteData, s32_ReadSize);
+    }
+
+    if (!d_ptr->m_pRecycleBuffer)
+    {
+        RELEASEIF(pNoteData);
+        return;
+    }
+    s32_ReadSize = d_ptr->m_pRecycleBuffer->ReadBuffer(s32_SaveNoteDataLimit, pNoteData);
+    if (s32_ReadSize > 0)
+    {
+        auto p_Cache = d_ptr->m_pCache;
+        if (p_Cache)
+        {
+            const INT32 s32Count = s32_ReadSize / static_cast<INT32>(sizeof(ST_NOTE_DATA));
+            const auto *pArrNote = reinterpret_cast<const ST_NOTE_DATA *>(pNoteData);
+            p_Cache->AppendRecycleNoteData(pArrNote, s32Count);
+        }
+
+        d_ptr->m_pDataSaveRWMgr->AddOneNoteData(pNoteData, s32_ReadSize, TRUE);
     }
 
     RELEASEIF(pNoteData);
 }
 
-static void func_ReadNoteData(shared_ptr<CDataRWMgr> pDataSaveRWMgr, ST_DATA_SAVE_EVENT &event)
+void CDynsDataSaveThreadHandler::FuncCompactData(ST_DATA_SAVE_EVENT &event)
 {
-    auto p_DataMgr = g_ServiceLocator.GetDataRWMgr();
-    auto p_Cache = g_ServiceLocator.GetNoteCache();
-    auto p_NoteDataService = g_ServiceLocator.GetNoteService();
+    (void)event;
+
+    if (!d_ptr->m_pDataSaveRWMgr)
+    {
+        return ;
+    }
+    d_ptr->m_pDataSaveRWMgr->CompactNoteFile();
+}
+
+void CDynsDataSaveThreadHandler::FuncReadNoteData(ST_DATA_SAVE_EVENT &event)
+{
+    if (!d_ptr->m_pDataSaveRWMgr)
+    {
+        return ;
+    }
+    auto p_DataMgr = d_ptr->m_pDataSaveRWMgr;
+    auto p_Cache = d_ptr->m_pCache;
+    auto p_NoteDataService = d_ptr->m_pNoteDataService;
     if (!p_DataMgr || !p_Cache || !p_NoteDataService)
     {
         return;
@@ -82,6 +129,15 @@ static void func_ReadNoteData(shared_ptr<CDataRWMgr> pDataSaveRWMgr, ST_DATA_SAV
     {
         p_NoteDataService->LoadFromBuffer(pNoteData, s32_ReadSize);
     }
+
+    memset(pNoteData, 0, s32_ReadSize);
+    s32_ReadSize  = 0;
+    p_DataMgr->ReadFromFile(pNoteData, s32_CacheSize, s32_ReadSize, TRUE);
+    if (s32_ReadSize > 0)
+    {
+        p_NoteDataService->LoadRecycleFromBuffer(pNoteData, s32_ReadSize);
+    }
+
     delete[] pNoteData;
 }
 
@@ -90,31 +146,48 @@ class CDynsDataSaveThreadHandlerPrivate
     friend class CDynsDataSaveThreadHandler;
 
 public:
-    explicit CDynsDataSaveThreadHandlerPrivate(CDynsDataSaveThreadHandler *q)
+    explicit CDynsDataSaveThreadHandlerPrivate(CDynsDataSaveThreadHandler *q,
+                                               shared_ptr<CDataRWMgr> pDataRWMgr,
+                                               shared_ptr<INoteDataBuffer> pBuffer,
+                                               shared_ptr<INoteDataBuffer> pRecycleBuffer,
+                                               shared_ptr<CNoteDataCache> pCache,
+                                               shared_ptr<CNoteDataService> pService)
         : q_ptr(q)
-        , m_pDataSaveRWMgr(g_ServiceLocator.GetDataRWMgr())
+        , m_pDataSaveRWMgr(std::move(pDataRWMgr))
+        , m_pBuffer(std::move(pBuffer))
+        , m_pRecycleBuffer(std::move(pRecycleBuffer))
+        , m_pCache(std::move(pCache))
+        , m_pNoteDataService(std::move(pService))
         , m_bIsExit(false)
     {
 
     }
 
 private:
-    typedef void (*DATASAVE_FUNC)(shared_ptr<CDataRWMgr> pDataSaveRWMgr, ST_DATA_SAVE_EVENT &event);
-
     CDynsDataSaveThreadHandler              *q_ptr;
     shared_ptr<CDataRWMgr>                  m_pDataSaveRWMgr;
+    shared_ptr<INoteDataBuffer>             m_pBuffer;
+    shared_ptr<INoteDataBuffer>             m_pRecycleBuffer;
+    shared_ptr<CNoteDataCache>              m_pCache;
+    shared_ptr<CNoteDataService>            m_pNoteDataService;
     queue<ST_DATA_SAVE_EVENT>               m_queSaveEvent;
     QMutex                                  m_mutex;
-    map<string, DATASAVE_FUNC>              m_mapFunc;
+    map<string, std::function<void(ST_DATA_SAVE_EVENT &)>> m_mapFunc;
     BOOL                                    m_bIsExit;
 };
 
-CDynsDataSaveThreadHandler::CDynsDataSaveThreadHandler()
-    : d_ptr(new CDynsDataSaveThreadHandlerPrivate(this))
+CDynsDataSaveThreadHandler::CDynsDataSaveThreadHandler(shared_ptr<CDataRWMgr> pDataRWMgr,
+                                                       shared_ptr<INoteDataBuffer> pBuffer,
+                                                       shared_ptr<INoteDataBuffer> pRecycleBuffer,
+                                                       shared_ptr<CNoteDataCache> pCache,
+                                                       shared_ptr<CNoteDataService> pService)
+    : d_ptr(new CDynsDataSaveThreadHandlerPrivate(this, std::move(pDataRWMgr),
+                                                  std::move(pBuffer), std::move(pRecycleBuffer),
+                                                  std::move(pCache), std::move(pService)))
 {
-    d_ptr->m_mapFunc[DataSaveFucName::MSG_DATASAVE_NOTE]    = func_SaveNoteData;
-    d_ptr->m_mapFunc[DataSaveFucName::MSG_DATAREAD_NOTE]    = func_ReadNoteData;
-
+    d_ptr->m_mapFunc[DataSaveFucName::MSG_DATASAVE_NOTE]    = [this](ST_DATA_SAVE_EVENT &e) { FuncSaveNoteData(e); };
+    d_ptr->m_mapFunc[DataSaveFucName::MSG_DATAREAD_NOTE]    = [this](ST_DATA_SAVE_EVENT &e) { FuncReadNoteData(e); };
+    d_ptr->m_mapFunc[DataSaveFucName::MSG_COMPACT_FILE]     = [this](ST_DATA_SAVE_EVENT &e) { FuncCompactData(e); };
 }
 
 CDynsDataSaveThreadHandler::~CDynsDataSaveThreadHandler()
@@ -159,7 +232,7 @@ void CDynsDataSaveThreadHandler::SaveAllData()
         auto it = d_ptr->m_mapFunc.find(event.strMsgKey);
         if (it != d_ptr->m_mapFunc.end())
         {
-            it->second(d_ptr->m_pDataSaveRWMgr, event);
+            it->second(event);
         }
     }
     d_ptr->m_mutex.unlock();
@@ -187,7 +260,7 @@ void CDynsDataSaveThreadHandler::HandleTask()
         auto it = d_ptr->m_mapFunc.find(event.strMsgKey);
         if (it != d_ptr->m_mapFunc.end())
         {
-            it->second(d_ptr->m_pDataSaveRWMgr, event);
+            it->second(event);
             #ifdef _WIN32
             Sleep(1000);
 #else
