@@ -1,39 +1,41 @@
 /*
- * @file: CMainNoteListViewModel.h
+ * @file: CMainNoteListViewModel.cpp
  * @brief: 笔记列表视图模型
  * @author: nuo
  * @date: 2026/5/10
  * @Detail: 负责管理 st_NoteModelData 数据并与 QML 进行交互
  */
 #include <QVariant>
+#include <QVariantList>
 #include <QDateTime>
 #include <QMetaObject>
 
 #include "CMainNoteListViewModel.h"
 #include "CNoteDataService.h"
+#include "DServiceBase.h"
+#include "DNoteMapping.h"
 
 CMainNoteListViewModel::CMainNoteListViewModel(QObject *parent)
     : QAbstractListModel(parent)
     , m_pNoteService(nullptr)
-    , m_eCurNoteType(E_NOTE_TYPE_ALL)
-    , m_s64NextID(0)
 {
+    RegisterNoteActions();
 }
 
 int CMainNoteListViewModel::rowCount(const QModelIndex &parent) const
 {
     if (parent.isValid())
         return 0;
-    return m_vecNote.size();
+    return m_store.Count();
 }
 
 QVariant CMainNoteListViewModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() >= m_vecNote.size())
+    if (!index.isValid() || index.row() >= m_store.Count())
     {
         return QVariant();
     }
-    const st_NoteModelItem &note = m_vecNote.at(index.row());
+    const st_NoteModelItem &note = m_store.ItemAt(index.row());
 
     switch (role)
     {
@@ -43,10 +45,16 @@ QVariant CMainNoteListViewModel::data(const QModelIndex &index, int role) const
         case RoleNoteContent:       return QString::fromStdString(note.m_strContent);
         case RoleNoteWriteTime:     return QDateTime::fromSecsSinceEpoch(note.m_s64WriteTime).toString("yyyy-MM-dd hh:mm");
         case RoleNoteModifyTime:    return QDateTime::fromSecsSinceEpoch(note.m_s64ModifyTime).toString("yyyy-MM-dd hh:mm");
-        case RoleNoteRemindTime:    return QDateTime::fromSecsSinceEpoch(note.m_s64RemindTime).toString("yyyy-MM-dd hh:mm");
+        case RoleNoteRemindTime:
+        {
+            // m_s64RemindTime 为 0 表示未设置提醒，直接返回空串，避免显示 1970 年
+            return note.m_s64RemindTime > 0
+                ? QDateTime::fromSecsSinceEpoch(note.m_s64RemindTime).toString("yyyy-MM-dd hh:mm")
+                : QString();
+        }
         case RoleNoteRemindFrequency: return note.m_eRemindFrequency;
         case RoleNoteCompleted:     return note.m_bCompleted;
-        case RoleNoteDeleted:       return note.m_bDeleted; // 简单取第一行作为标题
+        case RoleNoteDeleted:       return note.m_bDeleted;
         case RoleNoteType:          return note.m_eNoteType;
         default:                    return QVariant();
     }
@@ -69,82 +77,148 @@ QHash<int, QByteArray> CMainNoteListViewModel::roleNames() const
         return roles;
 }
 
+void CMainNoteListViewModel::RegisterNoteActions()
+{
+    m_mapActions[static_cast<INT32>(E_NOTE_ACTION::E_NOTE_ACTION_CATEGORY)] = [this](INT32 index, const QVariant &value)
+    {
+        ChangeNoteCategory(index, value.toInt());
+    };
+
+    m_mapActions[static_cast<INT32>(E_NOTE_ACTION::E_NOTE_ACTION_REMIND)] = [this](INT32 index, const QVariant &value)
+    {
+        // QML 传入的是 [提醒时间, 重复类型索引, 自定义间隔] 三个值
+        const QVariantList vecArgs = value.toList();
+        if (vecArgs.size() < 3)
+        {
+            return;
+        }
+
+        SetNoteRemind(index, vecArgs.at(0).toDateTime(),
+                      vecArgs.at(1).toInt(), vecArgs.at(2).toInt());
+    };
+
+    m_mapActions[static_cast<INT32>(E_NOTE_ACTION::E_NOTE_ACTION_SET_LEVEL)] = [this](INT32 index, const QVariant &value)
+    {
+        SetNoteLevel(index, value.toInt());
+    };
+
+    m_mapActions[static_cast<INT32>(E_NOTE_ACTION::E_NOTE_ACTION_PIN_NOTE)] = [this](INT32 index, const QVariant &)
+    {
+        PinTop(index);
+    };
+
+    m_mapActions[static_cast<INT32>(E_NOTE_ACTION::E_NOTE_ACTION_DELETE)] = [this](INT32 index, const QVariant &)
+    {
+        DeleteNote(index);
+    };
+}
+
+void CMainNoteListViewModel::ExecNoteAction(INT32 s32Action, INT32 index, const QVariant &value)
+{
+    if (m_mapActions.contains(s32Action))
+    {
+        m_mapActions.value(s32Action)(index, value);
+    }
+}
+
 void CMainNoteListViewModel::AddNote(const QString &strContent, const QDateTime &time)
 {
-    st_NoteModelItem st_NoteModelData;
-    st_NoteModelData.m_s64NoteId     = m_s64NextID++;
-    st_NoteModelData.m_s64WriteTime  = time.toSecsSinceEpoch();
-    st_NoteModelData.m_s64ModifyTime = st_NoteModelData.m_s64WriteTime;
-    st_NoteModelData.m_strContent    = strContent.toStdString();
-    st_NoteModelData.m_eNoteType     = m_eCurNoteType;
+    const INT32 s32Row = m_store.Count();
 
-    PushContainer(st_NoteModelData);
-
-    beginInsertRows(QModelIndex(), m_vecNote.size(), m_vecNote.size());
-    m_vecNote.append(st_NoteModelData);
+    beginInsertRows(QModelIndex(), s32Row, s32Row);
+    const st_NoteModelItem stItem = m_store.Add(strContent.toStdString(), time.toSecsSinceEpoch());
     endInsertRows();
 
     if (m_pNoteService)
     {
-        m_pNoteService->AddNote(st_NoteModelData);
-        m_pNoteService->UpDataNextID(m_s64NextID);
+        m_pNoteService->AddNote(stItem);
+        m_pNoteService->UpDataNextID(m_store.NextId());
     }
 }
 
 void CMainNoteListViewModel::UpdateNoteContent(int index, const QString &newContent)
 {
-    if (index < 0 || index >= m_vecNote.size())
+    if (index < 0 || index >= m_store.Count())
     {
         return;
     }
 
-    st_NoteModelItem &stItem = m_vecNote[index];
-    stItem.m_strContent    = newContent.toStdString();
-    stItem.m_s64ModifyTime = QDateTime::currentSecsSinceEpoch();
+    const st_NoteModelItem stItem =
+        m_store.UpdateContent(index, newContent.toStdString(), QDateTime::currentSecsSinceEpoch());
 
-    PushContainer(stItem);
+    UpdateNoteFile(stItem);
 
     const QModelIndex qIndex = createIndex(index, 0);
     emit dataChanged(qIndex, qIndex, {RoleNoteContent, RoleNoteModifyTime});
 }
 
-void CMainNoteListViewModel::SetNoteRemind(int index, const QDateTime &time)
+void CMainNoteListViewModel::SetNoteRemind(int index, const QDateTime &time,
+                                           int repeatIndex, int interval)
 {
-    if (index >= 0 && index < m_vecNote.size())
+    if (index < 0 || index >= m_store.Count())
     {
-        st_NoteModelItem &stItem = m_vecNote[index];
-        stItem.m_s64RemindTime = time.toSecsSinceEpoch();
-
-        PushContainer(stItem);
-
-        const QModelIndex qIndex = createIndex(index, 0);
-        emit dataChanged(qIndex, qIndex, {RoleNoteRemindTime});
+        return;
     }
+
+    // QML 的 ComboBox 索引 0 是"单次"，对应 E_NOTE_REMIND_ONCE(1)，
+    // 故整体 +1 跳过 E_NOTE_REMIND_NONE；QML 的 model 增删选项时需同步调整。
+    const E_NOTE_REMIND_FREQUENCY eFreq =
+        static_cast<E_NOTE_REMIND_FREQUENCY>(repeatIndex + 1);
+
+    const st_NoteModelItem stItem =
+        m_store.SetRemind(index, time.toSecsSinceEpoch(), eFreq, interval);
+
+    UpdateNoteFile(stItem);
+
+    const QModelIndex qIndex = createIndex(index, 0);
+    emit dataChanged(qIndex, qIndex, {RoleNoteRemindTime, RoleNoteRemindFrequency});
 }
 
 void CMainNoteListViewModel::SetNoteLevel(int index, int level)
 {
-    if (index >= 0 && index < m_vecNote.size())
+    if (index < 0 || index >= m_store.Count())
     {
-        st_NoteModelItem &stItem = m_vecNote[index];
-        stItem.m_eNoteLevel = static_cast<E_NOTE_EVENT_WAKEUP_LEVEL>(level);
-
-        PushContainer(stItem);
-
-        const QModelIndex qIndex = createIndex(index, 0);
-        emit dataChanged(qIndex, qIndex, {RoleNoteLevel});
+        return;
     }
+
+    const st_NoteModelItem stItem = m_store.SetLevel(index, level);
+
+    UpdateNoteFile(stItem);
+
+    const QModelIndex qIndex = createIndex(index, 0);
+    emit dataChanged(qIndex, qIndex, {RoleNoteLevel});
 }
 
-void CMainNoteListViewModel::SetNoteType(int index, int type)
+void CMainNoteListViewModel::ChangeNoteCategory(int index, int type)
 {
-    if (index >= 0 && index < m_vecNote.size())
+    if (index < 0 || index >= m_store.Count())
     {
-        st_NoteModelItem &stItem = m_vecNote[index];
-        stItem.m_eNoteType = static_cast<E_NOTE_TYPE> (type);
+        return;
+    }
 
-        PushContainer(stItem);
+    const E_NOTE_TYPE eNewType = static_cast<E_NOTE_TYPE>(type);
+    if (m_store.ItemAt(index).m_eNoteType == eNewType)
+    {
+        return;
+    }
 
+    const BOOL bRemoveRow = !m_store.ShouldShow(eNewType);
+    if (bRemoveRow)
+    {
+        beginRemoveRows(QModelIndex(), index, index);
+    }
+
+    const st_NoteModelItem stItem = m_store.ChangeCategory(index, type);
+
+    if (bRemoveRow)
+    {
+        endRemoveRows();
+    }
+
+    UpdateNoteFile(stItem);
+
+    if (!bRemoveRow)
+    {
         const QModelIndex qIndex = createIndex(index, 0);
         emit dataChanged(qIndex, qIndex, {RoleNoteType});
     }
@@ -152,38 +226,33 @@ void CMainNoteListViewModel::SetNoteType(int index, int type)
 
 void CMainNoteListViewModel::DeleteNote(int index)
 {
-    if (index >= 0 && index < m_vecNote.size())
+    if (index < 0 || index >= m_store.Count())
     {
-        INT64 s64NoteID = m_vecNote[index].m_s64NoteId;
+        return;
+    }
 
-        m_vecNote[index].m_bDeleted = true;
-        st_NoteModelItem stItem = m_vecNote[index];
-        beginRemoveRows(QModelIndex(), index, index);
-        m_vecNote.remove(index);
-        endRemoveRows();
-        m_hashNoteData[E_NOTE_TYPE_ALL].remove(index);
-        if (m_pNoteService)
-        {
-            m_pNoteService->DeleteNote(stItem);
-        }
+    beginRemoveRows(QModelIndex(), index, index);
+    const st_NoteModelItem stItem = m_store.Delete(index);
+    endRemoveRows();
+
+    if (m_pNoteService)
+    {
+        m_pNoteService->DeleteNote(stItem);
     }
 }
 
 void CMainNoteListViewModel::PinTop(int index)
 {
-    //未完成
-    if (index >= 0 && index < m_vecNote.size())
+    if (index < 0 || index >= m_store.Count())
     {
-        const INT64 s64NoteId = m_vecNote[index].m_s64NoteId;
-        rotate(m_vecNote.begin(), m_vecNote.begin() + index, m_vecNote.begin() + index + 1);
-
-        m_vecNote[0].m_bIsTop = TRUE;
-        m_vecNote[0].m_s32TopOrder = TRUE;
-
-        const auto &stItem = m_vecNote[0];
-        m_hashNoteData[stItem.m_eNoteType].insert(stItem.m_s64NoteId, stItem);
-        m_hashNoteData[E_NOTE_TYPE_ALL].insert(stItem.m_s64NoteId, stItem);
+        return;
     }
+
+    beginResetModel();
+    const st_NoteModelItem stItem = m_store.PinTop(index);
+    endResetModel();
+
+    UpdateNoteFile(stItem);
 }
 
 void CMainNoteListViewModel::PutArrNoteData(NOTE_CACHE_SNAPSHOT pSnapshot)
@@ -193,8 +262,8 @@ void CMainNoteListViewModel::PutArrNoteData(NOTE_CACHE_SNAPSHOT pSnapshot)
         return;
     }
 
-    m_hashNoteData.clear();
-    INT64 s64MaxId = 0;
+    QVector<st_NoteModelItem> vecItems;
+    vecItems.reserve(pSnapshot->size());
 
     for (const auto &p_Src : *pSnapshot)
     {
@@ -202,32 +271,27 @@ void CMainNoteListViewModel::PutArrNoteData(NOTE_CACHE_SNAPSHOT pSnapshot)
         {
             continue;
         }
-        const st_NoteModelItem st_ModelItem = ConvertToModel(*p_Src);
-        PushContainer(st_ModelItem);
-        s64MaxId = std::max(s64MaxId, st_ModelItem.m_s64NoteId);
-    }
 
-    if (m_s64NextID <= s64MaxId)
-    {
-        m_s64NextID = s64MaxId + 1;
+        st_NoteModelItem stItem;
+        NoteMapping::ToModel(*p_Src, stItem);
+        vecItems.append(stItem);
     }
 
     beginResetModel();
-    m_vecNote = m_hashNoteData[m_eCurNoteType].values();
+    m_store.Rebuild(vecItems);
     endResetModel();
 }
 
 void CMainNoteListViewModel::UpdateNoteIndex(INT32U u32Index)
 {
-    m_eCurNoteType = static_cast<E_NOTE_TYPE>(u32Index);
     beginResetModel();
-    m_vecNote = m_hashNoteData[m_eCurNoteType].values();
+    m_store.SetCurNoteType(static_cast<E_NOTE_TYPE>(u32Index));
     endResetModel();
 }
 
 void CMainNoteListViewModel::SetNextID(INT64 s64NextID)
 {
-    m_s64NextID = s64NextID;
+    m_store.SetNextId(s64NextID);
 }
 
 void CMainNoteListViewModel::Init(std::shared_ptr<CNoteDataService> pService)
@@ -243,14 +307,6 @@ void CMainNoteListViewModel::Init(std::shared_ptr<CNoteDataService> pService)
          * 数据线程的回调通过 QMetaObject::invokeMethod + Qt::QueuedConnection
          * 将数据 marshal 到主线程事件队列执行，避免跨线程操作模型导致 SIGSEGV。
          */
-//        m_pNoteService->RegisterNoteModelDataLoadCallback(
-//            [this](std::shared_ptr<std::array<ST_NOTE_DATA, DDataCache::MAX_CACHE_SIZE>> pArrData, INT32 s32Count)
-//            {
-//                QMetaObject::invokeMethod(this, [this, pArrData, s32Count]()
-//                {
-//                    PutArrNoteData(pArrData, s32Count);
-//                }, Qt::QueuedConnection);
-//            });
         m_pNoteService->RegisterNoteModelDataLoadCallback(
             [this](NOTE_CACHE_SNAPSHOT pSnapshot)
             {
@@ -271,107 +327,63 @@ void CMainNoteListViewModel::Init(std::shared_ptr<CNoteDataService> pService)
     }
 }
 
-void CMainNoteListViewModel::PushContainer(const st_NoteModelItem &Item)
-{
-    m_hashNoteData[Item.m_eNoteType].insert(Item.m_s64NoteId, Item);
-
-    if (Item.m_eNoteType != E_NOTE_TYPE_ALL)
-    {
-        m_hashNoteData[E_NOTE_TYPE_ALL].insert(Item.m_s64NoteId, Item);
-    }
-}
-
-st_NoteModelItem CMainNoteListViewModel::ConvertToModel(const ST_NOTE_DATA &st_Src) const
-{
-    st_NoteModelItem st_ModelItem;
-    st_ModelItem.m_s64NoteId        = st_Src.m_s32id;
-    st_ModelItem.m_eNoteLevel       = st_Src.m_eNoteLevel;
-    st_ModelItem.m_eTimeSpanType    = st_Src.m_eTimeSpanType;
-    st_ModelItem.m_s64RemindTime    = st_Src.m_s64RemindTime;
-    st_ModelItem.m_s64WriteTime     = st_Src.m_s64CreateTime;
-    st_ModelItem.m_s64ModifyTime    = st_Src.m_s64UpdateTime;
-    st_ModelItem.m_eRemindFrequency = st_Src.m_eRemindFrequency;
-    st_ModelItem.m_eNoteType        = st_Src.m_eNoteType;
-    st_ModelItem.m_bCompleted       = st_Src.m_bCompleted;
-    st_ModelItem.m_bDeleted         = st_Src.m_bDeleted;
-    st_ModelItem.m_strContent       = st_Src.m_szContent;
-    st_ModelItem.m_bIsTop           = st_Src.m_bIsTop;
-    st_ModelItem.m_s32TopOrder      = st_Src.m_s32TopOrder;
-
-    return st_ModelItem;
-}
-
-INT32 CMainNoteListViewModel::FindRow(INT64 s64NoteId) const
-{
-    for (INT32 i = 0; i < m_vecNote.size(); ++i)
-    {
-        if (m_vecNote.at(i).m_s64NoteId == s64NoteId)
-        {
-            return i;
-        }
-    }
-    return -1;
-}
-
 void CMainNoteListViewModel::ApplyChange(const SNoteCacheChange &stChange)
 {
     switch (stChange.eType)
     {
-        case E_CACHE_CHANGE_ADD:
+        case E_CACHE_CHANGE_TYPE::E_CACHE_CHANGE_ADD:
         {
             if (!stChange.pData || stChange.pData->m_eNoteType == 0)
             {
                 return;
             }
-            const st_NoteModelItem st_Item = ConvertToModel(*stChange.pData);
-            PushContainer(st_Item);
 
-            if (m_eCurNoteType == E_NOTE_TYPE_ALL || m_eCurNoteType == st_Item.m_eNoteType)
+            st_NoteModelItem stItem;
+            NoteMapping::ToModel(*stChange.pData, stItem);
+
+            const BOOL bAppend = m_store.ShouldShow(stItem.m_eNoteType);
+            if (bAppend)
             {
-                const INT32 nRow = m_vecNote.size();
-                beginInsertRows(QModelIndex(), nRow, nRow);
-                m_vecNote.append(st_Item);
-                endInsertRows();
+                const INT32 s32Row = m_store.Count();
+                beginInsertRows(QModelIndex(), s32Row, s32Row);
             }
 
-            if (m_s64NextID <= st_Item.m_s64NoteId)
+            m_store.ApplyAdd(stItem);
+
+            if (bAppend)
             {
-                m_s64NextID = st_Item.m_s64NoteId + 1;
+                endInsertRows();
             }
             break;
         }
-        case E_CACHE_CHANGE_UPDATE:
+        case E_CACHE_CHANGE_TYPE::E_CACHE_CHANGE_UPDATE:
         {
             if (!stChange.pData)
             {
                 return;
             }
-            const INT32 nRow = FindRow(stChange.pData->m_s32id);
-            if (nRow < 0)
-            {
-                return;
-            }
-            const st_NoteModelItem st_Item = ConvertToModel(*stChange.pData);
-            m_vecNote[nRow] = st_Item;
-            PushContainer(st_Item);
 
-            const QModelIndex qIndex = index(nRow, 0);
-            emit dataChanged(qIndex, qIndex);
+            st_NoteModelItem stItem;
+            NoteMapping::ToModel(*stChange.pData, stItem);
+
+            const INT32 s32Row = m_store.ApplyUpdate(stItem);
+            if (s32Row >= 0)
+            {
+                const QModelIndex qIndex = index(s32Row, 0);
+                emit dataChanged(qIndex, qIndex);
+            }
             break;
         }
-        case E_CACHE_CHANGE_REMOVE:
+        case E_CACHE_CHANGE_TYPE::E_CACHE_CHANGE_REMOVE:
         {
-            const INT32 nRow = FindRow(stChange.s32NoteId);
-            if (nRow < 0)
+            const INT32 s32Row = m_store.FindRow(stChange.s32NoteId);
+            if (s32Row < 0)
             {
                 return;
             }
-            const st_NoteModelItem st_Item = m_vecNote.at(nRow);
-            m_hashNoteData[st_Item.m_eNoteType].remove(st_Item.m_s64NoteId);
-            m_hashNoteData[E_NOTE_TYPE_ALL].remove(st_Item.m_s64NoteId);
 
-            beginRemoveRows(QModelIndex(), nRow, nRow);
-            m_vecNote.remove(nRow);
+            beginRemoveRows(QModelIndex(), s32Row, s32Row);
+            m_store.ApplyRemove(stChange.s32NoteId);
             endRemoveRows();
             break;
         }
@@ -379,5 +391,13 @@ void CMainNoteListViewModel::ApplyChange(const SNoteCacheChange &stChange)
         {
             break;
         }
+    }
+}
+
+void CMainNoteListViewModel::UpdateNoteFile(const st_NoteModelItem &Item)
+{
+    if (m_pNoteService)
+    {
+        m_pNoteService->UpdateNote(Item);
     }
 }

@@ -7,6 +7,7 @@ add_library(NoteDomain STATIC
         DServiceBase.h
         DDataMgrBase.h
         SCategoryInfo.h
+        DNoteMapping.h
 )
 
 target_include_directories(NoteDomain PUBLIC

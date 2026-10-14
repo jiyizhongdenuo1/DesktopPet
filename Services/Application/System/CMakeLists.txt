@@ -13,6 +13,7 @@ target_link_libraries(CAppSystem
         DataCache
         ThreadBase
         CNoteApp
+        DataManager
 )
 
 target_include_directories(CAppSystem PUBLIC

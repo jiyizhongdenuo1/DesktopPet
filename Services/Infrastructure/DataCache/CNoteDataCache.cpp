@@ -72,7 +72,7 @@ void CNoteDataCache::SaveNoteDataCache(const ST_NOTE_DATA &stNoteData)
             }
             PublishSnapshot();
 
-            stChange.eType     = E_CACHE_CHANGE_ADD;
+            stChange.eType     = E_CACHE_CHANGE_TYPE::E_CACHE_CHANGE_ADD;
             stChange.s32NoteId = p_Item->m_s32id;
             stChange.pData     = p_Item;
             cb = d_ptr->m_ChangeCallback;
@@ -99,7 +99,7 @@ void CNoteDataCache::UpdateNoteDataCache(const ST_NOTE_DATA &stNoteData)
                 d_ptr->m_arrNoteData.at(i) = p_Item;
                 PublishSnapshot();
 
-                stChange.eType     = E_CACHE_CHANGE_UPDATE;
+                stChange.eType     = E_CACHE_CHANGE_TYPE::E_CACHE_CHANGE_UPDATE;
                 stChange.s32NoteId = p_Item->m_s32id;
                 stChange.pData     = p_Item;
                 cb = d_ptr->m_ChangeCallback;
@@ -134,7 +134,7 @@ void CNoteDataCache::AppendNoteData(const ST_NOTE_DATA *pArrNote, INT32 s32Count
             {
                 ++d_ptr->m_s32Count;
             }
-            vecChanges.push_back({E_CACHE_CHANGE_ADD, p_Item->m_s32id, p_Item});
+            vecChanges.push_back({E_CACHE_CHANGE_TYPE::E_CACHE_CHANGE_ADD, p_Item->m_s32id, p_Item});
         }
 
         PublishSnapshot();      // 整批只发布一次

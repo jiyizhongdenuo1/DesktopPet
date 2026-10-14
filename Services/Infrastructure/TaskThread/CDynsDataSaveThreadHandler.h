@@ -1,10 +1,10 @@
 /*
 * @file: CDynsDataSaveThreadHandler.h
- * @brief: 动态数据保存线程处理器
- * @author: nuo
- * @date: 2026/6/10
- * @Detail: 负责数据保存任务的处理和调度
- */
+* @brief: 动态数据保存线程处理器
+* @author: nuo
+* @date: 2026/6/10
+* @Detail: 负责数据保存任务的处理和调度
+*/
 
 #pragma once
 
@@ -20,8 +20,8 @@ typedef struct st_DataSaveEvent
 } ST_DATA_SAVE_EVENT;
 
 class CDataRWMgr;
-class CNoteDataCache;
-class CNoteDataService;
+class INoteCacheBatchWriter;
+class INoteDataLoader;
 class INoteDataBuffer;
 class CDynsDataSaveThreadHandlerPrivate;
 
@@ -30,11 +30,11 @@ class DLL_EXPORT CDynsDataSaveThreadHandler : public CThreadHandler
 public:
 
     explicit CDynsDataSaveThreadHandler(
-        std::shared_ptr<CDataRWMgr>       pDataRWMgr,
-        std::shared_ptr<INoteDataBuffer>  pBuffer,
-        std::shared_ptr<INoteDataBuffer>  pRecycleBuffer,
-        std::shared_ptr<CNoteDataCache>   pCache,
-        std::shared_ptr<CNoteDataService> pService);
+        std::shared_ptr<CDataRWMgr>            pDataRWMgr,
+        std::shared_ptr<INoteDataBuffer>       pBuffer,
+        std::shared_ptr<INoteDataBuffer>       pRecycleBuffer,
+        std::shared_ptr<INoteCacheBatchWriter> pCache,
+        std::shared_ptr<INoteDataLoader>       pLoader);
     ~CDynsDataSaveThreadHandler();
 
     /** ***********************************************************

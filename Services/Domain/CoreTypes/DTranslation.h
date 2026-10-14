@@ -17,7 +17,7 @@ static bool ToLocalTm(time_t t, std::tm& tmOut)
 #endif
 }
 
-static INT64 LocalDayNumber(time_t t)
+inline INT64 LocalDayNumber(time_t t)
 {
     std::tm tmBuf{};
     if (!ToLocalTm(t, tmBuf))
@@ -33,7 +33,7 @@ static INT64 LocalDayNumber(time_t t)
 }
 
 /** 取 tRef 的时分秒、日期用当天；转换失败返回 -1 */
-static time_t TodayWithTimeOfDay(time_t tRef)
+inline time_t TodayWithTimeOfDay(time_t tRef)
 {
     std::tm tmToday{};
     std::tm tmRef{};

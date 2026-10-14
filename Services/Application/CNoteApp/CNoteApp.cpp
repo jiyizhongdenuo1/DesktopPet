@@ -1,7 +1,7 @@
 
 #include "CNoteApp.h"
 #include "DTranslation.h"
-#include "IDataCache.h"
+#include "INoteCache.h"
 #include "CNoteBusiness.h"
 
 CNoteApp::CNoteApp()
@@ -53,7 +53,7 @@ void CNoteApp::RegisterTipCallback(std::function<void (const ST_NOTE_DATA &)> fn
     }
 }
 
-void CNoteApp::SetCache(std::shared_ptr<IDataCache> pCache)
+void CNoteApp::SetCache(std::shared_ptr<INoteCache> pCache)
 {
     if (!pCache)
     {

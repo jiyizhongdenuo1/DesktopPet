@@ -46,22 +46,22 @@ int CMainConfigModel::windowY() const
     return y;
 }
 
-int CMainConfigModel::setWindowWidth(int s32Width) const
+void CMainConfigModel::setWindowWidth(int s32Width) const
 {
     g_ConfigManager->SetWindowGeometry(s32Width, -1);
 }
 
-int CMainConfigModel::setWindowHeight(int s32Height) const
+void CMainConfigModel::setWindowHeight(int s32Height) const
 {
     g_ConfigManager->SetWindowGeometry(-1, s32Height);
 }
 
-int CMainConfigModel::setWindowX(int s32X) const
+void CMainConfigModel::setWindowX(int s32X) const
 {
     g_ConfigManager->SetWindowPosition(s32X, -1);
 }
 
-int CMainConfigModel::setWindowY(int s32Y) const
+void CMainConfigModel::setWindowY(int s32Y) const
 {
     g_ConfigManager->SetWindowPosition(-1, s32Y);
 }

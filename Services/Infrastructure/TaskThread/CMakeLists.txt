@@ -19,5 +19,4 @@ target_link_libraries(TaskThread
         Interfaces
         ThreadBase
         DataReadWriterModule
-        DataCache
-        DataManager)
+        DataCache)

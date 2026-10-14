@@ -23,13 +23,48 @@
 
 #include "INoteDataBuffer.h"
 #include "DSaveDefine.h"
-#include "CNoteDataCache.h"
-#include "CNoteDataService.h"
+#include "INoteCacheBatchWriter.h"
+#include "INoteDataLoader.h"
  #include "DDataCache.h"
 #include "DThread.h"
 #include "datatype.h"
 
 using namespace std;
+
+class CDynsDataSaveThreadHandlerPrivate
+{
+    friend class CDynsDataSaveThreadHandler;
+
+public:
+    explicit CDynsDataSaveThreadHandlerPrivate(CDynsDataSaveThreadHandler *q,
+                                               shared_ptr<CDataRWMgr> pDataRWMgr,
+                                               shared_ptr<INoteDataBuffer> pBuffer,
+                                               shared_ptr<INoteDataBuffer> pRecycleBuffer,
+                                               shared_ptr<INoteCacheBatchWriter> pCache,
+                                               shared_ptr<INoteDataLoader> pLoader)
+        : q_ptr(q)
+        , m_pDataSaveRWMgr(std::move(pDataRWMgr))
+        , m_pBuffer(std::move(pBuffer))
+        , m_pRecycleBuffer(std::move(pRecycleBuffer))
+        , m_pCache(std::move(pCache))
+        , m_pNoteDataLoader(std::move(pLoader))
+        , m_bIsExit(false)
+    {
+
+    }
+
+private:
+    CDynsDataSaveThreadHandler              *q_ptr;
+    shared_ptr<CDataRWMgr>                  m_pDataSaveRWMgr;
+    shared_ptr<INoteDataBuffer>             m_pBuffer;
+    shared_ptr<INoteDataBuffer>             m_pRecycleBuffer;
+    shared_ptr<INoteCacheBatchWriter>       m_pCache;
+    shared_ptr<INoteDataLoader>             m_pNoteDataLoader;
+    queue<ST_DATA_SAVE_EVENT>               m_queSaveEvent;
+    QMutex                                  m_mutex;
+    map<string, std::function<void(ST_DATA_SAVE_EVENT &)>> m_mapFunc;
+    BOOL                                    m_bIsExit;
+};
 
 void CDynsDataSaveThreadHandler::FuncSaveNoteData(ST_DATA_SAVE_EVENT &event)
 {
@@ -110,8 +145,8 @@ void CDynsDataSaveThreadHandler::FuncReadNoteData(ST_DATA_SAVE_EVENT &event)
     }
     auto p_DataMgr = d_ptr->m_pDataSaveRWMgr;
     auto p_Cache = d_ptr->m_pCache;
-    auto p_NoteDataService = d_ptr->m_pNoteDataService;
-    if (!p_DataMgr || !p_Cache || !p_NoteDataService)
+    auto p_NoteDataLoader = d_ptr->m_pNoteDataLoader;
+    if (!p_DataMgr || !p_Cache || !p_NoteDataLoader)
     {
         return;
     }
@@ -127,7 +162,7 @@ void CDynsDataSaveThreadHandler::FuncReadNoteData(ST_DATA_SAVE_EVENT &event)
     p_DataMgr->ReadFromFile(pNoteData, s32_CacheSize, s32_ReadSize);
     if (s32_ReadSize > 0)
     {
-        p_NoteDataService->LoadFromBuffer(pNoteData, s32_ReadSize);
+        p_NoteDataLoader->LoadFromBuffer(pNoteData, s32_ReadSize);
     }
 
     memset(pNoteData, 0, s32_ReadSize);
@@ -135,55 +170,21 @@ void CDynsDataSaveThreadHandler::FuncReadNoteData(ST_DATA_SAVE_EVENT &event)
     p_DataMgr->ReadFromFile(pNoteData, s32_CacheSize, s32_ReadSize, TRUE);
     if (s32_ReadSize > 0)
     {
-        p_NoteDataService->LoadRecycleFromBuffer(pNoteData, s32_ReadSize);
+        p_NoteDataLoader->LoadRecycleFromBuffer(pNoteData, s32_ReadSize);
     }
 
     delete[] pNoteData;
 }
 
-class CDynsDataSaveThreadHandlerPrivate
-{
-    friend class CDynsDataSaveThreadHandler;
-
-public:
-    explicit CDynsDataSaveThreadHandlerPrivate(CDynsDataSaveThreadHandler *q,
-                                               shared_ptr<CDataRWMgr> pDataRWMgr,
-                                               shared_ptr<INoteDataBuffer> pBuffer,
-                                               shared_ptr<INoteDataBuffer> pRecycleBuffer,
-                                               shared_ptr<CNoteDataCache> pCache,
-                                               shared_ptr<CNoteDataService> pService)
-        : q_ptr(q)
-        , m_pDataSaveRWMgr(std::move(pDataRWMgr))
-        , m_pBuffer(std::move(pBuffer))
-        , m_pRecycleBuffer(std::move(pRecycleBuffer))
-        , m_pCache(std::move(pCache))
-        , m_pNoteDataService(std::move(pService))
-        , m_bIsExit(false)
-    {
-
-    }
-
-private:
-    CDynsDataSaveThreadHandler              *q_ptr;
-    shared_ptr<CDataRWMgr>                  m_pDataSaveRWMgr;
-    shared_ptr<INoteDataBuffer>             m_pBuffer;
-    shared_ptr<INoteDataBuffer>             m_pRecycleBuffer;
-    shared_ptr<CNoteDataCache>              m_pCache;
-    shared_ptr<CNoteDataService>            m_pNoteDataService;
-    queue<ST_DATA_SAVE_EVENT>               m_queSaveEvent;
-    QMutex                                  m_mutex;
-    map<string, std::function<void(ST_DATA_SAVE_EVENT &)>> m_mapFunc;
-    BOOL                                    m_bIsExit;
-};
 
 CDynsDataSaveThreadHandler::CDynsDataSaveThreadHandler(shared_ptr<CDataRWMgr> pDataRWMgr,
                                                        shared_ptr<INoteDataBuffer> pBuffer,
                                                        shared_ptr<INoteDataBuffer> pRecycleBuffer,
-                                                       shared_ptr<CNoteDataCache> pCache,
-                                                       shared_ptr<CNoteDataService> pService)
+                                                       shared_ptr<INoteCacheBatchWriter> pCache,
+                                                       shared_ptr<INoteDataLoader> pLoader)
     : d_ptr(new CDynsDataSaveThreadHandlerPrivate(this, std::move(pDataRWMgr),
                                                   std::move(pBuffer), std::move(pRecycleBuffer),
-                                                  std::move(pCache), std::move(pService)))
+                                                  std::move(pCache), std::move(pLoader)))
 {
     d_ptr->m_mapFunc[DataSaveFucName::MSG_DATASAVE_NOTE]    = [this](ST_DATA_SAVE_EVENT &e) { FuncSaveNoteData(e); };
     d_ptr->m_mapFunc[DataSaveFucName::MSG_DATAREAD_NOTE]    = [this](ST_DATA_SAVE_EVENT &e) { FuncReadNoteData(e); };
@@ -261,7 +262,7 @@ void CDynsDataSaveThreadHandler::HandleTask()
         if (it != d_ptr->m_mapFunc.end())
         {
             it->second(event);
-            #ifdef _WIN32
+#ifdef _WIN32
             Sleep(1000);
 #else
             sleep(1);

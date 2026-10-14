@@ -52,47 +52,26 @@ Item
     NoteContextMenu
     {
         id: noteContextMenu
-        onRequestDelete:
+        onRequestAction: function(action, index, value)
         {
-            switch(action)
+            switch (action)
             {
-                case NoteContextMenu.Action.TopWindow:
+                case NoteContextMenu.E_NOTE_ACTION.E_NOTE_ACTION_TOP_WINDOW:
                 {
                     requestToggleTopWin()
                 }
                 break;
-                case NoteContextMenu.Action.Category:
+                case NoteContextMenu.E_NOTE_ACTION.E_NOTE_ACTION_REMIND:
                 {
-
-                }
-                break;
-                case NoteContextMenu.Action.Remind:
-                {
-                    noteModel.SetNoteRemind(index, value)
-                }
-                break;
-                case NoteContextMenu.Action.SetLevel:
-                {
-                    noteModel.SetNoteLevel(index, value)
-                }
-                break;
-                case NoteContextMenu.Action.SetTimeSpan:
-                {
-
-                }
-                break;
-                case NoteContextMenu.Action.PinNote:
-                {
-
-                }
-                break;
-                case NoteContextMenu.Action.Delete:
-                {
-                    noteModel.DeleteNote(index)
+                    remindDialog.noteIndex = index
+                    remindDialog.open()
                 }
                 break;
                 default:
-                    break;
+                {
+                    noteModel.ExecNoteAction(action, index, value)
+                }
+                break;
             }
         }
     }
@@ -112,7 +91,7 @@ Item
             delegate: Rectangle
             {
                 property string perNoteContent: ""
-                width: parent.width
+                width: noteList.width
                 height: 50
                 color: mouseArea.containsMouse ? "#f0f0f0" : "#80ffffff"
                 border.color: (currentClickIndex == index) ? "#4a90d9" : "#eee"
@@ -124,9 +103,9 @@ Item
                     anchors.fill: parent
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
-                    onClicked:
+                    onClicked: function(mouse)
                     {
-                        if (mouse.button == Qt.RightButton)
+                        if (mouse.button === Qt.RightButton)
                         {
                             noteContextMenu.noteIndex = index
                             noteContextMenu.popup()
@@ -369,6 +348,19 @@ Item
                 }
             }
             currentClickIndex = -1
+        }
+    }
+
+    TipDia
+    {
+        id: remindDialog
+
+        onRemindConfirmed: (index, remindTime, repeatType, interval) =>
+        {
+            noteModel.ExecNoteAction(
+                NoteContextMenu.E_NOTE_ACTION.E_NOTE_ACTION_REMIND,
+                index,
+                [remindTime, repeatType, interval])
         }
     }
 

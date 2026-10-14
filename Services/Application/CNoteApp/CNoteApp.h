@@ -16,7 +16,7 @@
 #include "datatype.h"
 #include "DServiceBase.h"
 
-class IDataCache;
+class INoteCache;
 class CNoteBusiness;
 
 /** ***********************************************************
@@ -54,10 +54,10 @@ public:
      * @param[in]   pCache 缓存实例的共享指针
      * @return      void
      ************************************************************/
-    VOID SetCache(std::shared_ptr<IDataCache> pCache);
+    VOID SetCache(std::shared_ptr<INoteCache> pCache);
 
 private:
-    std::shared_ptr<IDataCache>            m_pCache;
+    std::shared_ptr<INoteCache>            m_pCache;
     std::unique_ptr<CNoteBusiness>         m_pBusiness;
     std::map<INT32, time_t>                m_mapLastTipTime;   // 节流：每条上次提示时间
     std::vector< std::function<void(const ST_NOTE_DATA&)>> m_vecfnTip;

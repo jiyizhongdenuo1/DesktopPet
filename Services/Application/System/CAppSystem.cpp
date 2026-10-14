@@ -14,11 +14,9 @@
 #include "CSystemThreadHandler.h"
 #include "CThreadFactory.h"
 #include "DThread.h"
-#include "DDataCache.h"
 #include "CNoteDataCache.h"
-#include "CDataRWMgr.h"
-#include "INoteDataBuffer.h"
 #include "CNoteDataService.h"
+#include "INoteDataBuffer.h"
 #include "CNoteApp.h"
 #include "DNoteCommon.h"
 
@@ -175,7 +173,7 @@ void CAppSystem::InitSystem()
     }
 }
 
-void CAppSystem::SetCache(std::shared_ptr<IDataCache> pCache)
+void CAppSystem::SetCache(std::shared_ptr<INoteCache> pCache)
 {
     if (d_ptr->m_pNoteApp)
     {

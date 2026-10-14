@@ -15,8 +15,8 @@
 
 class CThreadHandler;
 class CDataRWMgr;
-class CNoteDataCache;
-class CNoteDataService;
+class INoteCacheBatchWriter;
+class INoteDataLoader;
 class INoteDataBuffer;
 
 /**
@@ -34,11 +34,11 @@ public:
      * @param pCache         笔记缓存（注入给数据保存 Handler）
      * @param pService       笔记数据服务（注入给数据保存 Handler）
      */
-    explicit CThreadFactory(std::shared_ptr<CDataRWMgr>       pDataRWMgr,
-                            std::shared_ptr<INoteDataBuffer>  pBuffer,
-                            std::shared_ptr<INoteDataBuffer>  pRecycleBuffer,
-                            std::shared_ptr<CNoteDataCache>   pCache,
-                            std::shared_ptr<CNoteDataService> pService);
+    explicit CThreadFactory(std::shared_ptr<CDataRWMgr>            pDataRWMgr,
+                            std::shared_ptr<INoteDataBuffer>       pBuffer,
+                            std::shared_ptr<INoteDataBuffer>       pRecycleBuffer,
+                            std::shared_ptr<INoteCacheBatchWriter> pCache,
+                            std::shared_ptr<INoteDataLoader>       pLoader);
 
     /**
      * @brief 析构函数
@@ -96,6 +96,6 @@ private:
     std::shared_ptr<CDataRWMgr>                             m_pDataRWMgr;
     std::shared_ptr<INoteDataBuffer>                        m_pBuffer;
     std::shared_ptr<INoteDataBuffer>                        m_pRecycleBuffer;
-    std::shared_ptr<CNoteDataCache>                         m_pCache;
-    std::shared_ptr<CNoteDataService>                       m_pService;
+    std::shared_ptr<INoteCacheBatchWriter>                  m_pCache;
+    std::shared_ptr<INoteDataLoader>                        m_pLoader;
 };

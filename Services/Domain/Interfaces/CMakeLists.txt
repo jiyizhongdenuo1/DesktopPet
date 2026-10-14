@@ -6,10 +6,14 @@
 add_library(Interfaces STATIC
         # 入站端口 (Inbound Ports) - 驱动接口
         Inbound/CThreadHandler.h
+        Inbound/INoteDataLoader.h
 
         # 出站端口 (Outbound Ports) - 被驱动接口
 #        IConfigPort.h
         Outbound/INoteDataBuffer.h
+        Outbound/INoteCache.h
+        Outbound/INoteCacheBatchWriter.h
+        Outbound/INoteTipBusiness.h
 
         # 基础类型/工具类（待迁移）
         CDataCollectBase.h

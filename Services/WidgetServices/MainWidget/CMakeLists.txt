@@ -7,6 +7,8 @@
 add_library(CMainWidgetServices STATIC
         CMainNoteListViewModel.cpp
         CMainNoteListViewModel.h
+        NoteListStore.cpp
+        NoteListStore.h
         CSidebarModel.cpp
         CSidebarModel.h
         CMainConfigModel.cpp

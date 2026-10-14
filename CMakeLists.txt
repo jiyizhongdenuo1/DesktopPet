@@ -89,11 +89,20 @@ install(TARGETS DesktopPet
 )
 
 install(DIRECTORY config/ DESTINATION config/)
+install(DIRECTORY resource/ DESTINATION resource/)
 
 # 构建时自动复制 config 文件夹
 add_custom_command(TARGET DesktopPet POST_BUILD
         COMMAND ${CMAKE_SOURCE_DIR}/Scripts/pack.sh ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/bin/
         COMMENT "Copying config folder to output directory"
+)
+
+# 构建时自动复制 resource 文件夹到可执行文件目录
+add_custom_command(TARGET DesktopPet POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/resource
+            $<TARGET_FILE_DIR:DesktopPet>/resource
+        COMMENT "Copying resource folder to output directory"
 )
 # 添加清理目标
 add_custom_target(clean-all

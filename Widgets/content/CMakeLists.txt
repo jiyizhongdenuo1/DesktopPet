@@ -11,7 +11,7 @@ qt6_add_qml_module(content
             App.qml
             MainWindow.qml
             PopInputNoteDia.qml
-            Screen01.ui.qml
+            TipDia.qml
             NoteContextMenu.qml
         RESOURCES
             fonts/fonts.txt

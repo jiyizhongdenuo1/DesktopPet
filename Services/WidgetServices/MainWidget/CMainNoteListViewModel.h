@@ -1,19 +1,24 @@
 /*
 * @file: CMainNoteListViewModel.h
- * @brief: 笔记列表视图模型
- * @author: nuo
- * @date: 2026/5/10
- * @Detail: 负责管理 st_NoteData 数据并与 QML 进行交互
- */
+* @brief: 笔记列表视图模型
+* @author: nuo
+* @date: 2026/5/10
+* @Detail: 负责管理 st_NoteData 数据并与 QML 进行交互
+*/
 
 #pragma once
 
+#include <functional>
 #include <memory>
+
 #include <QAbstractListModel>
+#include <QMap>
+#include <QVariant>
 
 #include "datatype.h"
 #include "DDataMgrBase.h"
 #include "DDataCache.h"
+#include "NoteListStore.h"
 
 class CNoteDataService;
 
@@ -21,6 +26,20 @@ class CMainNoteListViewModel : public QAbstractListModel
 {
     Q_OBJECT
 public:
+    /**
+     * @brief 右键菜单操作类型
+     * 取值与 QML 端 NoteContextMenu.E_NOTE_ACTION 的顺序保持一致
+     */
+    enum class E_NOTE_ACTION : INT32
+    {
+        E_NOTE_ACTION_TOP_WINDOW = 0,
+        E_NOTE_ACTION_CATEGORY   = 1,
+        E_NOTE_ACTION_REMIND     = 2,
+        E_NOTE_ACTION_SET_LEVEL  = 3,
+        E_NOTE_ACTION_PIN_NOTE   = 4,
+        E_NOTE_ACTION_DELETE     = 5
+    };
+
     /**
      * @brief 构造函数
      * @param parent 父对象指针
@@ -73,6 +92,14 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     /**
+     * @brief 执行右键菜单操作（QML 可调用）
+     * @param s32Action 操作类型，取值见 E_NOTE_ACTION
+     * @param index 目标笔记行号
+     * @param value 操作参数，按操作类型自行解释
+     */
+    Q_INVOKABLE void ExecNoteAction(INT32 s32Action, INT32 index, const QVariant &value);
+
+    /**
      * @brief 添加新笔记（QML 可调用）
      * @param strContent 笔记内容
      * @param time 写入时间
@@ -86,9 +113,9 @@ public:
      */
     Q_INVOKABLE void UpdateNoteContent(int index, const QString &newContent);
 
-    Q_INVOKABLE void SetNoteRemind(int index, const QDateTime &time);
+    Q_INVOKABLE void SetNoteRemind(int index, const QDateTime &time, int repeatIndex, int interval);
     Q_INVOKABLE void SetNoteLevel(int index, int level);
-    Q_INVOKABLE void SetNoteType(int index, int type);
+    Q_INVOKABLE void ChangeNoteCategory(int index, int type);
     Q_INVOKABLE void DeleteNote(int index);
     Q_INVOKABLE void PinTop(int index);
 
@@ -102,23 +129,21 @@ public:
      * @param pService 笔记数据服务实例
      */
     void Init(std::shared_ptr<CNoteDataService> pService);
+
 private:
-    void PushContainer(const st_NoteModelItem& Item);
+    using NoteActionHandler = std::function<void(INT32 index, const QVariant &value)>;
 
-    /** 把领域数据结构转换为界面模型结构 */
-    st_NoteModelItem ConvertToModel(const ST_NOTE_DATA &st_Src) const;
-
-    /** 在已显示列表中查找指定 id 的行号，未找到返回 -1 */
-    INT32 FindRow(INT64 s64NoteId) const;
+    /** 注册右键菜单各操作的处理器 */
+    void RegisterNoteActions();
 
     /** 应用一条增量变更到列表模型 */
     void ApplyChange(const SNoteCacheChange &stChange);
-private:
-    QHash<INT32, QMap<INT64, st_NoteModelItem>> m_hashNoteData;
 
-    std::shared_ptr<CNoteDataService>       m_pNoteService;
-    QVector<st_NoteModelItem>               m_vecNote;
-    E_NOTE_TYPE                             m_eCurNoteType;
-    INT64                                   m_s64NextID;
-    INT32                                   m_LastTopIndex;
+    /** 把变更写回数据服务 */
+    void UpdateNoteFile(const st_NoteModelItem &Item);
+
+private:
+    NoteListStore                     m_store;
+    std::shared_ptr<CNoteDataService> m_pNoteService;
+    QMap<INT32, NoteActionHandler>    m_mapActions;
 };

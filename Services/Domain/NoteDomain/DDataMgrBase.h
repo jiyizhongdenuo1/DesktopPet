@@ -21,6 +21,7 @@ typedef  struct st_NoteModelItem
     INT64                           m_s64RemindTime;
     INT64                           m_s64WriteTime;
     INT64                           m_s64ModifyTime;
+    INT32                           m_s32CustomInterval;        ///< 自定义提醒间隔（单位：天）
     E_NOTE_REMIND_FREQUENCY         m_eRemindFrequency;
     E_NOTE_TYPE                     m_eNoteType;
     BOOL                            m_bIsTop;                   ///< 置顶标记 (TRUE: 已置顶 / FALSE: 普通)
@@ -35,6 +36,7 @@ typedef  struct st_NoteModelItem
         , m_s64RemindTime(0)
         , m_s64WriteTime(0)
         , m_s64ModifyTime(0)
+        , m_s32CustomInterval(1)
         , m_eRemindFrequency(E_NOTE_REMIND_NONE)
         , m_eNoteType(E_NOTE_TYPE_ALL)
         , m_bIsTop(FALSE)

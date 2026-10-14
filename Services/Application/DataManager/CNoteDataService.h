@@ -11,14 +11,14 @@
 #include <functional>
 #include "DServiceBase.h"
 #include "DDataMgrBase.h"
-#include "DDataCache.h"
+#include "INoteDataLoader.h"
 
-class CNoteDataCache;
+class INoteCache;
 class INoteDataBuffer;
 
 using CALLBACK_NOTEDATALOAD = std::function<void(NOTE_CACHE_SNAPSHOT pSnapshot)>;
 
-class CNoteDataService
+class CNoteDataService : public INoteDataLoader
 {
 public:
     /** ***********************************************************
@@ -27,7 +27,7 @@ public:
      * @param[in]   pBuffer 缓冲区接口实例（待写队列）
      * @param[in]   pRecycleBuffer 回收站缓冲区接口实例
      ************************************************************/
-    CNoteDataService(std::shared_ptr<CNoteDataCache> pCache,
+    CNoteDataService(std::shared_ptr<INoteCache>      pCache,
                      std::shared_ptr<INoteDataBuffer> pBuffer,
                      std::shared_ptr<INoteDataBuffer> pRecycleBuffer);
 
@@ -57,7 +57,7 @@ public:
      * @note        内部按 sizeof(ST_NOTE_DATA) 切分缓冲区，
      *              逐条调用 SaveNoteDataCache 存入缓存
      ************************************************************/
-    int LoadFromBuffer(char *pBuffer, INT32 s32BufferSize);
+    INT32 LoadFromBuffer(char *pBuffer, INT32 s32BufferSize) override;
 
     /** ***********************************************************
      * @brief       将原始字节缓冲区解析为回收站数据并存入回收站缓存
@@ -65,9 +65,16 @@ public:
      * @param[in]   s32BufferSize  缓冲区大小（字节）
      * @return      成功存入回收站缓存的条数，失败返回0
      ************************************************************/
-    int LoadRecycleFromBuffer(char *pBuffer, INT32 s32BufferSize);
+    INT32 LoadRecycleFromBuffer(char *pBuffer, INT32 s32BufferSize) override;
 
     BOOL DeleteNote(const NOTE_MODEL_ITEM &stModelItem);
+
+    /** ***********************************************************
+     * @brief       更新一条已存在的笔记数据（同时写入待写队列和缓存）
+     * @param[in]   stModelItem UI层数据结构
+     ************************************************************/
+    VOID UpdateNote(const NOTE_MODEL_ITEM &stModelItem);
+
     VOID UpDataNextID(INT64 s64NextID);
     VOID RegisterNoteModelDataLoadCallback(CALLBACK_NOTEDATALOAD NoteDataCallback);
 
@@ -77,16 +84,9 @@ public:
      ************************************************************/
     VOID RegisterNoteChangeCallback(CACHE_CHANGE_CALLBACK ChangeCallback);
 private:
-    /** ***********************************************************
-     * @brief       将 UI 层数据转换为领域层数据格式
-     * @param[in]   stModelItem  UI层数据结构
-     * @param[out]  stNoteData   输出的领域层数据结构
-     ************************************************************/
-    static void ConvertUIToDomain(const NOTE_MODEL_ITEM &stModelItem, ST_NOTE_DATA &stNoteData);
-
     void NotifyDataLoaded();
 
-    std::shared_ptr<CNoteDataCache>   m_pCache;         ///< 缓存实例（用于显示）
+    std::shared_ptr<INoteCache>       m_pCache;         ///< 缓存实例（用于显示）
     std::shared_ptr<INoteDataBuffer>  m_pBuffer;        ///< 缓冲区接口实例（待写队列）
     std::shared_ptr<INoteDataBuffer>  m_pRecycleBuffer; ///< 回收站缓冲区接口实例
     CALLBACK_NOTEDATALOAD m_NoteDataCallback;    ///< 加载回调函数

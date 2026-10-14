@@ -34,10 +34,10 @@ public:
     int  windowHeight() const;
     int  windowX() const;
     int  windowY() const;
-    int  setWindowWidth(int s32Width) const;
-    int  setWindowHeight(int s32Height) const;
-    int  setWindowX(int s32X) const;
-    int  setWindowY(int s32Y) const;
+    void  setWindowWidth(int s32Width) const;
+    void  setWindowHeight(int s32Height) const;
+    void  setWindowX(int s32X) const;
+    void  setWindowY(int s32Y) const;
 
     int windowMaximized() const;
 

@@ -5,8 +5,8 @@ add_library(DataManager SHARED
 )
 
 target_link_libraries(DataManager PRIVATE
-                     DataReadWriterModule
-                     DataCache)
+                     DataReadWriterModule)
+
 target_link_libraries(DataManager PUBLIC
                      CoreTypes
                      NoteDomain

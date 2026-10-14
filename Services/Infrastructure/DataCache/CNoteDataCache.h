@@ -11,14 +11,15 @@
 #include <memory>
 
 #include "DServiceBase.h"
-#include "IDataCache.h"
+#include "INoteCache.h"
+#include "INoteCacheBatchWriter.h"
 #include "DDataMgrBase.h"
 
 class CNoteDataCachePrivate;
 /** ***********************************************************
  * @brief       笔记数据缓存（Copy-on-Write 模式）
  ************************************************************/
-class CNoteDataCache : public IDataCache
+class CNoteDataCache : public INoteCache, public INoteCacheBatchWriter
 {
 public:
     /** ***********************************************************
@@ -35,7 +36,7 @@ public:
      * @param[in]   无
      * @return      void
      ************************************************************/
-    void InvalidateCache();
+    void InvalidateCache() override;
 
     /** ***********************************************************
      * @brief       保存单条数据到缓存（环形写入）
@@ -60,7 +61,7 @@ public:
      * @return      实际写入的条数（按 sizeof(ST_NOTE_DATA) 切分）
      * @note        超出 MAX_CACHE_SIZE 的部分会被截断
      ************************************************************/
-    INT32 PutBuffer2CacheData(char *pBuffer, INT32 s32BufferSize);
+    INT32 PutBuffer2CacheData(char *pBuffer, INT32 s32BufferSize) override;
 
     /** ***********************************************************
      * @brief       从原始缓冲区写入回收站缓存
@@ -69,7 +70,7 @@ public:
      * @return      实际写入的条数（按 sizeof(ST_NOTE_DATA) 切分）
      * @note        超出 MAX_CACHE_SIZE 的部分会被截断
      ************************************************************/
-    INT32 PutBuffer2RecycleData(char *pBuffer, INT32 s32BufferSize);
+    INT32 PutBuffer2RecycleData(char *pBuffer, INT32 s32BufferSize) override;
 
     /** ***********************************************************
      * @brief       批量追加笔记数据到缓存（环形写入）
@@ -78,7 +79,7 @@ public:
      * @return      void
      * @note        整批只发布一次快照；写满后覆盖最旧数据
      ************************************************************/
-    void AppendNoteData(const ST_NOTE_DATA* pArrNote, INT32 s32Count);
+    void AppendNoteData(const ST_NOTE_DATA* pArrNote, INT32 s32Count) override;
 
     /** ***********************************************************
      * @brief       批量追加回收站数据到缓存（环形写入）
@@ -87,7 +88,7 @@ public:
      * @return      void
      * @note        整批只发布一次回收站快照；写满后覆盖最旧数据
      ************************************************************/
-    void AppendRecycleNoteData(const ST_NOTE_DATA* pArrNote, INT32 s32Count);
+    void AppendRecycleNoteData(const ST_NOTE_DATA* pArrNote, INT32 s32Count) override;
 
     /** ***********************************************************
      * @brief       获取当前缓存快照（线程安全）
@@ -107,7 +108,7 @@ public:
      * @note        回调在写接口内部于锁外触发，执行在调用者线程；
      *              跨线程使用时由回调方自行 marshal 到目标线程
      ************************************************************/
-    void SetChangeCallback(CACHE_CHANGE_CALLBACK cb);
+    void SetChangeCallback(CACHE_CHANGE_CALLBACK cb) override;
 
     /** ***********************************************************
      * @brief       获取缓存中有效数据的字节大小

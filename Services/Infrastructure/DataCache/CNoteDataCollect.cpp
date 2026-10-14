@@ -8,6 +8,7 @@
 
 #include "CNoteDataCollect.h"
 #include "DServiceBase.h"
+#include "DNoteMapping.h"
 
 using namespace std;
 
@@ -24,34 +25,8 @@ CNoteDataCollect::~CNoteDataCollect()
 
 void CNoteDataCollect::AppendData(const NOTE_MODEL_ITEM &stModelItem)
 {
-    ST_NOTE_DATA st_NoteData{};
-
-    st_NoteData.m_s32id           = stModelItem.m_s64NoteId;
-    st_NoteData.m_eNoteLevel      = stModelItem.m_eNoteLevel;
-    st_NoteData.m_eTimeSpanType   = stModelItem.m_eTimeSpanType;
-    st_NoteData.m_s64RemindTime   = stModelItem.m_s64RemindTime;
-    st_NoteData.m_s64CreateTime     = stModelItem.m_s64WriteTime;
-    st_NoteData.m_s64UpdateTime   = stModelItem.m_s64ModifyTime;
-    st_NoteData.m_eRemindFrequency= stModelItem.m_eRemindFrequency;
-    st_NoteData.m_eNoteType       = stModelItem.m_eNoteType;
-    st_NoteData.m_bCompleted      = stModelItem.m_bCompleted;
-    st_NoteData.m_bDeleted        = stModelItem.m_bDeleted;
-
-    INT32 n_CopySize = min(
-        static_cast<INT32>(stModelItem.m_strContent.size()),
-        static_cast<INT32>(NoteSpace::CONTENT_LENGTH_MAX - 1)
-    );
-
-    if (n_CopySize > 0)
-    {
-        memcpy(st_NoteData.m_szContent,
-               stModelItem.m_strContent.c_str(),
-               n_CopySize + 1);
-    }
-    else
-    {
-        st_NoteData.m_szContent[0] = '\0';
-    }
+    ST_NOTE_DATA st_NoteData;
+    NoteMapping::ToDomain(stModelItem, st_NoteData);
 
     // 直接写入环形缓冲，省掉中间那次拷贝
     SetBuffer(sizeof(st_NoteData), reinterpret_cast<const char *>(&st_NoteData));

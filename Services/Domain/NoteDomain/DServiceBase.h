@@ -87,7 +87,7 @@ enum class E_CACHE_CHANGE_TYPE
 /** 缓存变更事件 */
 struct SNoteCacheChange
 {
-    E_CACHE_CHANGE_TYPE eType     = E_CACHE_CHANGE_ADD;   ///< 变更类型
+    E_CACHE_CHANGE_TYPE eType     = E_CACHE_CHANGE_TYPE::E_CACHE_CHANGE_ADD;   ///< 变更类型
     INT32               s32NoteId = 0;                    ///< 目标笔记 id（REMOVE 时有效）
     NOTE_ITEM_PTR       pData;                            ///< 变更后的数据（ADD/UPDATE 时有效）
 };

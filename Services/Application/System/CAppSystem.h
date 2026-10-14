@@ -16,7 +16,7 @@
 class CThread;
 class CThreadHandler;
 class CAppSystemPrivate;
-class IDataCache;
+class INoteCache;
 class CDataRWMgr;
 class CNoteDataCache;
 class CNoteDataService;
@@ -71,7 +71,7 @@ public:
      * @param[in]   pCache 缓存实例的共享指针
      * @return      void
      ************************************************************/
-    VOID SetCache(std::shared_ptr<IDataCache> pCache);
+    VOID SetCache(std::shared_ptr<INoteCache> pCache);
 
 private:
     /** ***********************************************************
